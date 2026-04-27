@@ -394,3 +394,74 @@ a:hover { text-decoration: underline; }
   .api-row { flex-direction: column; align-items: stretch; }
   .api-row input { min-width: unset; }
 }
+
+/* 14. 저장 링크 / 저장 버튼 */
+.header-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.saved-link {
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 999px;
+  padding: .45rem .85rem;
+  font-size: .82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.saved-link:hover {
+  text-decoration: none;
+  background: rgba(255,255,255,.14);
+}
+
+.save-icon {
+  position: absolute;
+  top: .7rem;
+  left: .85rem;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.95);
+  border-radius: 999px;
+  color: #64748b;
+  font-size: 1.05rem;
+  cursor: pointer;
+  z-index: 2;
+}
+.save-icon.saved {
+  color: #f59e0b;
+  border-color: #fbbf24;
+}
+
+.slide-save-btn {
+  margin-top: .6rem;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #4b5563;
+  border-radius: 999px;
+  padding: .35rem .75rem;
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.slide-save-btn.saved {
+  color: #b45309;
+  border-color: #fbbf24;
+  background: #fffbeb;
+}
+
+.saved-date {
+  margin-top: .45rem;
+  font-size: .72rem;
+  color: var(--text-sub);
+}
+
+@media (max-width: 640px) {
+  .header-top-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
