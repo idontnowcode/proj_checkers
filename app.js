@@ -3,6 +3,11 @@
 const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash-001', 'gemini-1.5-flash'];
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
+const SESSION_KEY = 'news_session';
+const SAVED_CARDS_KEY = 'saved_cards';
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 function saveKey() {
   const key = document.getElementById('geminiKey').value.trim();
   if (!key.startsWith('AIza')) {
@@ -102,9 +107,9 @@ async function generateCardNews(headline, description) {
     items: {
       type: 'OBJECT',
       properties: {
-        type:    { type: 'STRING', enum: ['title', 'content', 'conclusion'] },
+        type: { type: 'STRING', enum: ['title', 'content', 'conclusion'] },
         heading: { type: 'STRING' },
-        body:    { type: 'STRING' }
+        body: { type: 'STRING' }
       },
       required: ['type', 'heading', 'body']
     }
@@ -138,7 +143,6 @@ function repairJson(raw) {
 // 프록시마다 응답 형식이 다르므로 각각 별도 처리 (5단계 폴백)
 async function fetchWithFallback(rssUrl) {
   const strategies = [
-    // 1. rss2json.com — RSS 전용 JSON API, XML 파싱 불필요
     {
       label: 'rss2json.com',
       run: async signal => {
@@ -151,7 +155,6 @@ async function fetchWithFallback(rssUrl) {
         return json.status === 'ok' && json.items?.length ? parseRss2Json(json) : null;
       }
     },
-    // 2. allorigins.win /raw — 원시 텍스트 직접 반환
     {
       label: 'allorigins /raw',
       run: async signal => {
@@ -163,7 +166,6 @@ async function fetchWithFallback(rssUrl) {
         return parseRSS(await res.text());
       }
     },
-    // 3. allorigins.win /get — JSON 래퍼 { contents: '<xml>...' }
     {
       label: 'allorigins /get',
       run: async signal => {
@@ -176,7 +178,6 @@ async function fetchWithFallback(rssUrl) {
         return json.contents ? parseRSS(json.contents) : null;
       }
     },
-    // 4. corsproxy.io — 원시 XML 텍스트 반환
     {
       label: 'corsproxy.io',
       run: async signal => {
@@ -188,7 +189,6 @@ async function fetchWithFallback(rssUrl) {
         return parseRSS(await res.text());
       }
     },
-    // 5. codetabs.com — 원시 텍스트 반환
     {
       label: 'codetabs.com',
       run: async signal => {
@@ -211,10 +211,11 @@ async function fetchWithFallback(rssUrl) {
       const result = await s.run(ctrl.signal);
       clearTimeout(t);
       if (result && result.length > 0) return result;
-    } catch { clearTimeout(t); }
+    } catch {
+      clearTimeout(t);
+    }
   }
 
-  // 모든 프록시 실패 시 샘플 데이터로 폴백
   return null;
 }
 
@@ -233,11 +234,11 @@ const SAMPLE_NEWS = [
 
 function parseRss2Json(json) {
   return json.items.map(item => ({
-    title:       item.title ?? '',
+    title: item.title ?? '',
     description: (item.description ?? '').replace(/<[^>]+>/g, '').trim(),
-    link:        item.link ?? '',
-    pubDate:     item.pubDate ?? '',
-    source:      json.feed?.title ?? ''
+    link: item.link ?? '',
+    pubDate: item.pubDate ?? '',
+    source: json.feed?.title ?? ''
   }));
 }
 
@@ -251,13 +252,13 @@ function parseRSS(xmlString) {
     const rawDesc = item.querySelector('description, summary')?.textContent?.trim() ?? '';
     const descDoc = new DOMParser().parseFromString(rawDesc, 'text/html');
     return {
-      title:       item.querySelector('title')?.textContent?.trim() ?? '',
+      title: item.querySelector('title')?.textContent?.trim() ?? '',
       description: descDoc.body.textContent?.trim() ?? '',
-      link:        item.querySelector('link')?.textContent?.trim()
-                     || item.querySelector('link')?.getAttribute('href') || '',
-      pubDate:     item.querySelector('pubDate, published, updated')?.textContent?.trim() ?? '',
-      source:      item.querySelector('source')?.textContent?.trim()
-                     || doc.querySelector('channel > title, feed > title')?.textContent?.trim() || ''
+      link: item.querySelector('link')?.textContent?.trim()
+        || item.querySelector('link')?.getAttribute('href') || '',
+      pubDate: item.querySelector('pubDate, published, updated')?.textContent?.trim() ?? '',
+      source: item.querySelector('source')?.textContent?.trim()
+        || doc.querySelector('channel > title, feed > title')?.textContent?.trim() || ''
     };
   });
 }
@@ -287,15 +288,189 @@ function deduplicateByKeyword(items, threshold = 0.7) {
 
 async function getNewsHeadlines(rssUrl, count = 10) {
   const items = await fetchWithFallback(rssUrl);
-  if (!items) return null; // 폴백 신호
+  if (!items) return null;
   return deduplicateByKeyword(items, 0.7).slice(0, count);
+}
+
+/* ===== 생성 헬퍼 (네트워크 재시도 + 429 카운트다운) ===== */
+async function generateWithRetryAndBackoff(i) {
+  const progressEl = document.getElementById('progressMsg');
+  try {
+    return await generateCardNews(newsItems[i].title, newsItems[i].description);
+  } catch (e) {
+    const msg = e.message ?? '';
+
+    if (msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('network')) {
+      await sleep(2000);
+      return await generateCardNews(newsItems[i].title, newsItems[i].description);
+    }
+
+    if (msg.includes('429')) {
+      for (let s = 60; s > 0; s--) {
+        if (progressEl) {
+          progressEl.style.color = '#d97706';
+          progressEl.textContent = `Gemini 한도 초과 (분당 15회). ${s}초 후 자동 재시도… (${i + 1}/${newsItems.length})`;
+        }
+        await sleep(1000);
+      }
+      if (progressEl) progressEl.style.color = '';
+      return await generateCardNews(newsItems[i].title, newsItems[i].description);
+    }
+
+    throw e;
+  }
 }
 
 /* ===== 앱 상태 ===== */
 let newsItems = [];
-let cardData = {};  // index -> card array
+let cardData = {}; // index -> card array | null | 'blocked'
 let currentNewsIndex = null;
 let currentSlide = 0;
+
+/* ===== localStorage ===== */
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed?.items) || typeof parsed?.cards !== 'object' || parsed.cards === null) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveSession() {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ items: newsItems, cards: cardData }));
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function loadSavedCards() {
+  try {
+    const raw = localStorage.getItem(SAVED_CARDS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistSavedCards(cards) {
+  localStorage.setItem(SAVED_CARDS_KEY, JSON.stringify(cards));
+}
+
+function getCardIdentity(item) {
+  return `${item.title}__${item.link || ''}`;
+}
+
+function isSaved(i) {
+  const item = newsItems[i];
+  if (!item) return false;
+  const key = getCardIdentity(item);
+  return loadSavedCards().some(saved => getCardIdentity(saved) === key);
+}
+
+function updateSavedLink() {
+  const link = document.getElementById('savedLink');
+  if (!link) return;
+  const count = loadSavedCards().length;
+  link.textContent = `저장됨 (${count})`;
+}
+
+function updateItemSaveIcon(i) {
+  const btn = document.getElementById(`save-btn-${i}`);
+  if (!btn) return;
+
+  const isReady = Array.isArray(cardData[i]);
+  btn.hidden = !isReady;
+  if (!isReady) return;
+
+  const saved = isSaved(i);
+  btn.textContent = saved ? '★' : '☆';
+  btn.classList.toggle('saved', saved);
+  btn.setAttribute('aria-label', saved ? '저장 취소' : '저장');
+}
+
+function updateSlideSaveBtn(i) {
+  const btn = document.getElementById('slideSaveBtn');
+  if (!btn) return;
+  const isReady = Array.isArray(cardData[i]);
+  btn.hidden = !isReady;
+  if (!isReady) return;
+
+  const saved = isSaved(i);
+  btn.textContent = saved ? '★ 저장됨' : '☆ 저장';
+  btn.classList.toggle('saved', saved);
+}
+
+function toggleSave(i, e) {
+  e?.stopPropagation();
+  if (!Array.isArray(cardData[i])) return;
+
+  const item = newsItems[i];
+  const savedCards = loadSavedCards();
+  const key = getCardIdentity(item);
+  const idx = savedCards.findIndex(s => getCardIdentity(s) === key);
+
+  if (idx >= 0) {
+    savedCards.splice(idx, 1);
+    showToast('저장을 해제했습니다.');
+  } else {
+    savedCards.unshift({
+      title: item.title,
+      source: item.source,
+      link: item.link,
+      savedAt: new Date().toISOString(),
+      cards: cardData[i]
+    });
+    showToast('저장되었습니다.');
+  }
+
+  persistSavedCards(savedCards);
+  updateSavedLink();
+  updateItemSaveIcon(i);
+  if (currentNewsIndex === i) updateSlideSaveBtn(i);
+}
+
+function toggleSaveFromSlide(e) {
+  e?.stopPropagation();
+  if (currentNewsIndex === null) return;
+  toggleSave(currentNewsIndex);
+}
+
+async function retryCard(i, e) {
+  e?.stopPropagation();
+  updateItemBadge(i, 'loading');
+  try {
+    const cards = await generateWithRetryAndBackoff(i);
+    cardData[i] = cards;
+    updateItemBadge(i, 'ready');
+    updateItemSaveIcon(i);
+    if (currentNewsIndex === i) updateSlideSaveBtn(i);
+    saveSession();
+    showToast('카드뉴스가 생성되었습니다.');
+  } catch (err) {
+    const msg = err.message ?? '';
+    const isSafety = msg.startsWith('SAFETY_BLOCK') || msg === 'EMPTY_RESPONSE';
+    cardData[i] = isSafety ? 'blocked' : null;
+    updateItemBadge(i, isSafety ? 'blocked' : 'error');
+    updateItemSaveIcon(i);
+    saveSession();
+    showToast(isSafety ? '안전 정책으로 생성 불가합니다.' : '생성 실패. 잠시 후 다시 눌러 주세요.');
+  }
+}
+
+function countUnsavedGeneratedCards() {
+  let n = 0;
+  for (let i = 0; i < newsItems.length; i++) {
+    if (Array.isArray(cardData[i]) && !isSaved(i)) n++;
+  }
+  return n;
+}
 
 /* ===== 메인 실행 ===== */
 async function fetchAndGenerate() {
@@ -304,7 +479,14 @@ async function fetchAndGenerate() {
     return;
   }
 
-  const rssUrl = document.getElementById('rssSource').value;
+  const unsavedCount = countUnsavedGeneratedCards();
+  if (unsavedCount > 0) {
+    const ok = confirm(`저장되지 않은 카드뉴스 ${unsavedCount}개가 사라집니다. 계속하시겠습니까?`);
+    if (!ok) return;
+  }
+
+  const customUrl = document.getElementById('customRssUrl')?.value.trim();
+  const rssUrl = customUrl || document.getElementById('rssSource').value;
   const fetchBtn = document.getElementById('fetchBtn');
   const progressEl = document.getElementById('progressMsg');
 
@@ -314,6 +496,8 @@ async function fetchAndGenerate() {
   progressEl.hidden = false;
 
   try {
+    clearSession();
+
     let fetched = await getNewsHeadlines(rssUrl, 10);
     let usingSample = false;
     if (!fetched || fetched.length === 0) {
@@ -327,61 +511,44 @@ async function fetchAndGenerate() {
     document.getElementById('newsGrid').hidden = false;
     const countEl = document.getElementById('newsCount');
     if (usingSample) {
-      countEl.textContent = `(샘플 데이터 — RSS 수집 불가, 카드뉴스 생성은 정상 작동합니다)`;
+      countEl.textContent = '(샘플 데이터 — RSS 수집 불가, 카드뉴스 생성은 정상 작동합니다)';
       countEl.style.color = '#d97706';
     } else {
       countEl.textContent = `(${newsItems.length}건)`;
       countEl.style.color = '';
     }
+    saveSession();
 
-    // 뉴스별 카드뉴스 순차 생성 — 개별 실패해도 전체 루프 완주
-    let okCount = 0, failCount = 0, firstErrMsg = '';
+    let okCount = 0;
+    let failCount = 0;
+    let firstErrMsg = '';
 
     for (let i = 0; i < newsItems.length; i++) {
       progressEl.textContent = `카드뉴스 생성 중… (${i + 1}/${newsItems.length})`;
       updateItemBadge(i, 'loading');
 
       try {
-        const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
+        const cards = await generateWithRetryAndBackoff(i);
         cardData[i] = cards;
         updateItemBadge(i, 'ready');
+        updateItemSaveIcon(i);
+        if (currentNewsIndex === i) updateSlideSaveBtn(i);
+        saveSession();
         okCount++;
       } catch (e) {
         const msg = e.message ?? '';
-        const isSafety  = msg.startsWith('SAFETY_BLOCK') || msg === 'EMPTY_RESPONSE';
-        const isLimit   = msg.includes('429');
-        const isNetwork = msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('network');
-
-        // 네트워크 순단은 2초 후 1회 재시도
-        if (isNetwork) {
-          await new Promise(r => setTimeout(r, 2000));
-          try {
-            const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
-            cardData[i] = cards;
-            updateItemBadge(i, 'ready');
-            okCount++;
-            if (i < newsItems.length - 1) await new Promise(r => setTimeout(r, 1000));
-            continue;
-          } catch { /* 재시도도 실패 시 아래로 */ }
-        }
-
+        const isSafety = msg.startsWith('SAFETY_BLOCK') || msg === 'EMPTY_RESPONSE';
         cardData[i] = isSafety ? 'blocked' : null;
         updateItemBadge(i, isSafety ? 'blocked' : 'error');
+        updateItemSaveIcon(i);
+        saveSession();
         failCount++;
         if (!firstErrMsg) firstErrMsg = msg;
-
-        if (isLimit) {
-          progressEl.style.color = '#dc2626';
-          progressEl.textContent = `Gemini 무료 한도 초과 (분당 15회). 약 1분 후 버튼을 다시 눌러 주세요.`;
-          return;
-        }
       }
 
-      // 호출 간격 1초 (단일 실행은 15 RPM 이내, 화면 비활성화로 인한 fetch 차단 최소화)
       if (i < newsItems.length - 1) await new Promise(r => setTimeout(r, 1000));
     }
 
-    // 결과 요약 — 실패 있으면 에러 원인을 영구 표시
     if (failCount > 0 && okCount === 0) {
       progressEl.textContent = `생성 실패 (${failCount}건 전부 실패) — 원인: ${firstErrMsg.slice(0, 120)}`;
       progressEl.style.color = '#dc2626';
@@ -402,13 +569,19 @@ function renderGrid(items) {
   const grid = document.getElementById('gridItems');
   grid.innerHTML = items.map((item, i) => `
     <div class="news-item" id="item-${i}" onclick="openSlide(${i})">
+      <button class="save-icon" id="save-btn-${i}" onclick="toggleSave(${i}, event)" hidden aria-label="저장">☆</button>
       <span class="news-item-num">#${i + 1}</span>
       ${item.source ? `<div class="news-item-source">${escHtml(item.source)}</div>` : ''}
       <div class="news-item-title">${escHtml(item.title)}</div>
       ${item.description ? `<div class="news-item-desc">${escHtml(item.description)}</div>` : ''}
-      <span class="news-item-badge badge-pending" id="badge-${i}">생성 대기</span>
+      <div class="news-item-footer">
+        <span class="news-item-badge badge-pending" id="badge-${i}">생성 대기</span>
+        <button class="retry-btn" id="retry-btn-${i}" onclick="retryCard(${i}, event)" hidden aria-label="재시도">↺ 재시도</button>
+      </div>
     </div>
   `).join('');
+
+  for (let i = 0; i < items.length; i++) updateItemSaveIcon(i);
 }
 
 function updateItemBadge(i, state) {
@@ -416,17 +589,20 @@ function updateItemBadge(i, state) {
   const item = document.getElementById(`item-${i}`);
   if (!badge || !item) return;
   const map = {
-    ready:   ['badge-ready',   '카드뉴스 보기'],
+    ready: ['badge-ready', '카드뉴스 보기'],
     pending: ['badge-pending', '생성 대기'],
     loading: ['badge-loading', '생성 중…'],
-    error:   ['badge-error',   '생성 실패'],
-    blocked: ['badge-error',   '안전 정책 제한']
+    error: ['badge-error', '생성 실패'],
+    blocked: ['badge-error', '안전 정책 제한']
   };
   const [cls, label] = map[state] ?? map.pending;
   badge.className = `news-item-badge ${cls}`;
   badge.textContent = label;
   if (state === 'loading') item.classList.add('generating');
   else item.classList.remove('generating');
+
+  const retryBtn = document.getElementById(`retry-btn-${i}`);
+  if (retryBtn) retryBtn.hidden = state !== 'error';
 }
 
 /* ===== 슬라이드 ===== */
@@ -449,6 +625,7 @@ function openSlide(i) {
   document.getElementById('slideTitle').textContent = newsItems[i].title;
   renderSlides(cards);
   updateNav(cards.length);
+  updateSlideSaveBtn(i);
 
   document.getElementById('slideOverlay').hidden = false;
   document.body.style.overflow = 'hidden';
@@ -462,7 +639,7 @@ function closeSlide() {
 function renderSlides(cards) {
   const contentCount = {};
   const track = document.getElementById('slideTrack');
-  track.innerHTML = cards.map((card, i) => {
+  track.innerHTML = cards.map(card => {
     let colorClass;
     if (card.type === 'title') {
       colorClass = 'type-title';
@@ -543,7 +720,41 @@ function escHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-/* 페이지 로드 시 키 상태 표시 */
+function restoreFromSession() {
+  const session = loadSession();
+  if (!session) return;
+
+  newsItems = session.items;
+  cardData = session.cards;
+
+  if (!Array.isArray(newsItems) || newsItems.length === 0) return;
+
+  renderGrid(newsItems);
+  for (let i = 0; i < newsItems.length; i++) {
+    const d = cardData[i];
+    if (Array.isArray(d)) updateItemBadge(i, 'ready');
+    else if (d === 'blocked') updateItemBadge(i, 'blocked');
+    else if (d === null) updateItemBadge(i, 'error');
+    else updateItemBadge(i, 'pending');
+    updateItemSaveIcon(i);
+  }
+
+  const readyCount = newsItems.filter((_, i) => Array.isArray(cardData[i])).length;
+  const countEl = document.getElementById('newsCount');
+  countEl.textContent = `(${newsItems.length}건, 생성완료 ${readyCount}건)`;
+  countEl.style.color = '';
+
+  document.getElementById('newsGrid').hidden = false;
+
+  const progressEl = document.getElementById('progressMsg');
+  progressEl.hidden = false;
+  progressEl.style.color = '#059669';
+  progressEl.textContent = '저장된 세션 복원됨';
+}
+
+/* 페이지 로드 */
 window.addEventListener('DOMContentLoaded', () => {
   if (getKey()) showStatus('keyStatus', 'API 키가 저장되어 있습니다.', 'success');
+  updateSavedLink();
+  restoreFromSession();
 });

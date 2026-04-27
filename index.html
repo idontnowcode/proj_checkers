@@ -10,8 +10,13 @@
 
   <header class="site-header">
     <div class="container header-inner">
-      <h1>뉴스 카드뉴스 자동화</h1>
-      <p class="header-sub">네이버 뉴스 RSS → Gemini AI → 인스타그램 스타일 카드뉴스</p>
+      <div class="header-top-row">
+        <div>
+          <h1>뉴스 카드뉴스 자동화</h1>
+          <p class="header-sub">네이버 뉴스 RSS → Gemini AI → 인스타그램 스타일 카드뉴스</p>
+        </div>
+        <a class="saved-link" id="savedLink" href="saved.html">저장됨 (0)</a>
+      </div>
     </div>
   </header>
 
@@ -45,6 +50,11 @@
         </select>
         <button class="btn btn-primary" id="fetchBtn" onclick="fetchAndGenerate()">뉴스 수집 &amp; 카드뉴스 생성</button>
       </div>
+      <div class="custom-rss-row">
+        <input type="url" id="customRssUrl" class="custom-rss-input"
+               placeholder="또는 RSS URL 직접 입력 (입력 시 위 목록 무시)"
+               spellcheck="false" autocomplete="off">
+      </div>
       <div id="progressMsg" class="progress-msg" hidden></div>
     </section>
 
@@ -62,6 +72,7 @@
       <button class="slide-close" onclick="closeSlide()" aria-label="닫기">✕</button>
       <div class="slide-header">
         <h3 id="slideTitle" class="slide-news-title"></h3>
+        <button class="slide-save-btn" id="slideSaveBtn" onclick="toggleSaveFromSlide(event)" aria-label="저장 토글">☆ 저장</button>
       </div>
       <div class="slide-track-wrap">
         <div id="slideTrack" class="slide-track"></div>
@@ -75,6 +86,6 @@
   </div>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>
