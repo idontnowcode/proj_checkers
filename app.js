@@ -309,6 +309,8 @@ async function fetchAndGenerate() {
     }
 
     // 뉴스별 카드뉴스 순차 생성 — 개별 실패해도 전체 루프 완주
+    let okCount = 0, failCount = 0, firstErrMsg = '';
+
     for (let i = 0; i < newsItems.length; i++) {
       progressEl.textContent = `카드뉴스 생성 중… (${i + 1}/${newsItems.length})`;
       updateItemBadge(i, 'loading');
@@ -317,6 +319,7 @@ async function fetchAndGenerate() {
         const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
         cardData[i] = cards;
         updateItemBadge(i, 'ready');
+        okCount++;
       } catch (e) {
         const msg = e.message ?? '';
         const isSafety = msg.startsWith('SAFETY_BLOCK') || msg === 'EMPTY_RESPONSE';
@@ -324,10 +327,8 @@ async function fetchAndGenerate() {
 
         cardData[i] = isSafety ? 'blocked' : null;
         updateItemBadge(i, isSafety ? 'blocked' : 'error');
-
-        // 실제 에러 메시지를 1.5초 표시 후 계속
-        progressEl.textContent = `#${i + 1} 실패: ${msg.slice(0, 70)}`;
-        await new Promise(r => setTimeout(r, 1500));
+        failCount++;
+        if (!firstErrMsg) firstErrMsg = msg;
 
         if (isLimit) {
           progressEl.textContent = '한도 초과 — 4초 대기 후 재시도…';
@@ -336,15 +337,23 @@ async function fetchAndGenerate() {
             const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
             cardData[i] = cards;
             updateItemBadge(i, 'ready');
-          } catch { /* 재시도 실패 시 그냥 넘어감 */ }
+            okCount++; failCount--;
+          } catch { /* 재시도 실패 */ }
         }
       }
 
-      // API 호출 간격 (과호출 방지)
       if (i < newsItems.length - 1) await new Promise(r => setTimeout(r, 800));
     }
 
-    progressEl.textContent = '생성 완료! 뉴스 카드를 클릭하면 카드뉴스를 볼 수 있습니다.';
+    // 결과 요약 — 실패 있으면 에러 원인을 영구 표시
+    if (failCount > 0 && okCount === 0) {
+      progressEl.textContent = `생성 실패 (${failCount}건 전부 실패) — 원인: ${firstErrMsg.slice(0, 120)}`;
+      progressEl.style.color = '#dc2626';
+    } else if (failCount > 0) {
+      progressEl.textContent = `생성 완료 (성공 ${okCount}건 / 실패 ${failCount}건) — 첫 번째 실패 원인: ${firstErrMsg.slice(0, 80)}`;
+    } else {
+      progressEl.textContent = '생성 완료! 뉴스 카드를 클릭하면 카드뉴스를 볼 수 있습니다.';
+    }
   } catch (e) {
     progressEl.textContent = `오류: ${e.message}`;
   } finally {
