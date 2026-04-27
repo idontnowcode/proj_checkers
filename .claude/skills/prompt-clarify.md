@@ -1,6 +1,6 @@
 ---
 name: prompt-clarify
-description: Analyzes and improves AI prompts through iterative questioning. Use this skill whenever a user wants to refine or improve a prompt — even if they just paste a rough draft without explicitly asking for help. Also trigger when the user says their AI results are not matching expectations, since that often signals the original prompt needs improvement.
+description: Analyzes and improves AI prompts through iterative questioning. Use this skill whenever a user wants to refine or improve a prompt — even if they just paste a rough draft without explicitly asking for help. Also trigger when the user says their AI results are not matching expectations, when they ask "how do I phrase this?", or when they share a task description and seem unsure how to turn it into a prompt.
 ---
 
 # prompt-clarify
@@ -23,7 +23,7 @@ description: Analyzes and improves AI prompts through iterative questioning. Use
 
 ### 2단계: 명확성 분석 (최대 3라운드)
 
-입력된 프롬프트를 아래 기준으로 분석한다:
+입력된 프롬프트를 아래 기준으로 분석한다. 각 항목은 AI가 결과물을 제대로 생성하는 데 필요한 정보가 충분한지를 확인하기 위한 것이다.
 
 **분석 항목**
 - **목적/목표**: AI에게 기대하는 결과가 명확한가
@@ -41,13 +41,18 @@ description: Analyzes and improves AI prompts through iterative questioning. Use
   - 멀티에이전트가 적합하다고 판단되면 내부 플래그를 세워 3단계에서 구성도 제안으로 이어지도록 한다
 
 **라운드 진행 규칙**
-- 모호하거나 누락된 항목에 대해 질문을 생성한다
+- 모호하거나 누락된 항목에 대해서만 질문을 생성한다 (이미 명확한 항목은 질문하지 않는다)
 - 질문 수는 실제 필요한 개수만큼만 (과도한 질문 금지)
 - 사용자가 답변하면 재분석하여 여전히 불명확한 부분이 있으면 다음 라운드 진행
 - 아래 조기 종료 조건을 모두 충족하면 라운드를 조기 종료한다:
   - 목적/목표, 출력 형식, 대상/범위가 모두 명확히 정의됨
   - 추가 질문이 결과물 품질을 의미 있게 개선하지 않을 것으로 판단됨
 - 최대 3라운드 후 반드시 개선된 프롬프트를 출력
+
+**엣지 케이스 처리**
+- **프롬프트가 이미 충분히 명확한 경우**: 질문 없이 바로 3단계로 이동하며, "이미 잘 작성된 프롬프트입니다"라고 안내한 뒤 소폭 개선된 버전을 출력한다
+- **사용자가 질문에 답하지 않거나 "모르겠다"고 하는 경우**: 해당 항목은 빈칸으로 두고, 프롬프트에 "※ [항목명] 미정 — AI가 적절히 판단" 주석을 추가하여 출력한다
+- **프롬프트가 너무 짧아 분석 자체가 불가능한 경우**: 먼저 어떤 작업을 원하는지 한 문장으로 설명해달라고 요청한다
 
 **각 라운드 출력 형식**
 ```
@@ -88,19 +93,21 @@ description: Analyzes and improves AI prompts through iterative questioning. Use
 ## 스킬 추천 및 갭 검토
 
 ### 권장 스킬
-> 아래 두 기준 중 하나 이상을 만족하는 스킬을 권장으로 분류한다:
-> - 프롬프트의 작업 유형과 스킬의 목적이 연관되는 경우
-> - 이 스킬의 결과물이 다음 단계로 자연스럽게 이어지는 경우
->   (예: 명확화 완료 → eval-rubric으로 평가 기준 생성)
->
-> 참조 대상: 로컬 `.claude/skills/` 파일 + 현재 세션에서 사용 가능한 공식 스킬 전체
+> 스킬 추천 절차:
+> 1. 로컬 `.claude/skills/` 디렉토리의 파일 목록을 확인한다
+> 2. 현재 세션에서 사용 가능한 공식 스킬 목록을 확인한다
+> 3. 각 스킬에 대해 아래 두 기준 중 하나 이상을 만족하면 권장으로 분류한다:
+>    - 프롬프트의 작업 유형과 스킬의 목적이 연관되는 경우
+>    - 이 스킬의 결과물이 다음 단계로 자연스럽게 이어지는 경우
+>      (예: 명확화 완료 → eval-rubric으로 평가 기준 생성)
 
 | 스킬 | 추천 이유 |
 |------|-----------|
 | (스킬명) | (이유) |
 
 ### 갭 스킬 (보유하지 않은 스킬)
-> 필요하다고 판단되었으나 현재 보유하지 않은 스킬이 없으면 이 섹션은 생략한다.
+> 위 검토 과정에서 필요하다고 판단되었으나 현재 보유하지 않은 스킬을 여기 기록한다.
+> 없으면 이 섹션을 생략한다.
 
 | 필요 스킬 | 예상 역할 | 필요 이유 |
 |-----------|-----------|-----------|
