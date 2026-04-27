@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>뉴스 카드뉴스 자동화</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <h1>뉴스 카드뉴스 자동화</h1>
+      <p class="header-sub">네이버 뉴스 RSS → Gemini AI → 인스타그램 스타일 카드뉴스</p>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- API 키 설정 -->
+    <section class="api-section card">
+      <h2>Gemini API 키 설정</h2>
+      <p class="api-desc">API 키는 이 브라우저의 localStorage에만 저장되며 GitHub에 전송되지 않습니다.</p>
+      <div class="api-row">
+        <input type="password" id="geminiKey" placeholder="AIza로 시작하는 Gemini API 키"
+               autocomplete="off" spellcheck="false">
+        <button class="btn btn-secondary" onclick="saveKey()">저장</button>
+        <button class="btn btn-ghost" onclick="clearKey()">초기화</button>
+      </div>
+      <span id="keyStatus" class="status-msg"></span>
+      <p class="api-hint">키 발급: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a> → Create API key (무료: 분당 15회 / 일 1,500회)</p>
+    </section>
+
+    <!-- 뉴스 수집 컨트롤 -->
+    <section class="control-section card">
+      <h2>뉴스 수집 및 카드뉴스 생성</h2>
+      <div class="control-row">
+        <select id="rssSource">
+          <option value="https://news.naver.com/rss/main.xml">네이버 뉴스 (전체)</option>
+          <option value="https://news.naver.com/rss/politics.xml">네이버 뉴스 (정치)</option>
+          <option value="https://news.naver.com/rss/economic.xml">네이버 뉴스 (경제)</option>
+          <option value="https://news.naver.com/rss/society.xml">네이버 뉴스 (사회)</option>
+          <option value="https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko">구글 뉴스 (한국어)</option>
+        </select>
+        <button class="btn btn-primary" id="fetchBtn" onclick="fetchAndGenerate()">뉴스 수집 &amp; 카드뉴스 생성</button>
+      </div>
+      <div id="progressMsg" class="progress-msg" hidden></div>
+    </section>
+
+    <!-- 뉴스 그리드 (2열×5행) -->
+    <section id="newsGrid" class="news-grid" hidden>
+      <h2 class="section-title">수집된 뉴스 <span id="newsCount"></span></h2>
+      <div id="gridItems" class="grid"></div>
+    </section>
+
+  </main>
+
+  <!-- 카드뉴스 슬라이드 오버레이 -->
+  <div id="slideOverlay" class="slide-overlay" hidden>
+    <div class="slide-container">
+      <button class="slide-close" onclick="closeSlide()" aria-label="닫기">✕</button>
+      <div class="slide-header">
+        <h3 id="slideTitle" class="slide-news-title"></h3>
+      </div>
+      <div class="slide-track-wrap">
+        <div id="slideTrack" class="slide-track"></div>
+      </div>
+      <div class="slide-nav">
+        <button class="nav-btn" id="prevBtn" onclick="prevSlide()" aria-label="이전">‹</button>
+        <span id="slideIndicator" class="slide-indicator"></span>
+        <button class="nav-btn" id="nextBtn" onclick="nextSlide()" aria-label="다음">›</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
