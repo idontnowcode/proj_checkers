@@ -92,23 +92,65 @@ async function generateCardNews(headline, description) {
 }
 
 /* ===== RSS Fetcher ===== */
+
+// 프록시마다 응답 형식이 다르므로 각각 별도 처리
 async function fetchWithFallback(rssUrl) {
-  const proxies = [
-    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`
-  ];
-  for (const makeUrl of proxies) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    try {
-      const res = await fetch(makeUrl(rssUrl), { signal: controller.signal });
-      clearTimeout(timer);
-      if (!res.ok) continue;
-      const data = await res.json();
-      return data.contents ?? data;
-    } catch { clearTimeout(timer); continue; }
-  }
+  // 1. rss2json.com — RSS 전용 JSON API (CORS 지원, XML 파싱 불필요)
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(
+      `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(t);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.status === 'ok' && json.items?.length) return parseRss2Json(json);
+    }
+  } catch {}
+
+  // 2. allorigins.win — JSON 래퍼({ contents: '<xml>...' }) 형식
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(
+      `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(t);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.contents) return parseRSS(json.contents);
+    }
+  } catch {}
+
+  // 3. corsproxy.io — 원시 XML 텍스트 반환 (JSON 아님, res.text() 필수)
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(
+      `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(t);
+    if (res.ok) {
+      const xml = await res.text();
+      return parseRSS(xml);
+    }
+  } catch {}
+
   throw new Error('모든 CORS 프록시 실패. 잠시 후 다시 시도해 주세요.');
+}
+
+function parseRss2Json(json) {
+  return json.items.map(item => ({
+    title:       item.title ?? '',
+    description: (item.description ?? '').replace(/<[^>]+>/g, '').trim(),
+    link:        item.link ?? '',
+    pubDate:     item.pubDate ?? '',
+    source:      json.feed?.title ?? ''
+  }));
 }
 
 function parseRSS(xmlString) {
@@ -156,8 +198,7 @@ function deduplicateByKeyword(items, threshold = 0.7) {
 }
 
 async function getNewsHeadlines(rssUrl, count = 10) {
-  const xml = await fetchWithFallback(rssUrl);
-  const items = parseRSS(xml);
+  const items = await fetchWithFallback(rssUrl); // fetchWithFallback이 배열 직접 반환
   return deduplicateByKeyword(items, 0.7).slice(0, count);
 }
 
