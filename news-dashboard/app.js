@@ -6,6 +6,8 @@ const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models
 const SESSION_KEY = 'news_session';
 const SAVED_CARDS_KEY = 'saved_cards';
 
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 function saveKey() {
   const key = document.getElementById('geminiKey').value.trim();
   if (!key.startsWith('AIza')) {
@@ -290,6 +292,35 @@ async function getNewsHeadlines(rssUrl, count = 10) {
   return deduplicateByKeyword(items, 0.7).slice(0, count);
 }
 
+/* ===== 생성 헬퍼 (네트워크 재시도 + 429 카운트다운) ===== */
+async function generateWithRetryAndBackoff(i) {
+  const progressEl = document.getElementById('progressMsg');
+  try {
+    return await generateCardNews(newsItems[i].title, newsItems[i].description);
+  } catch (e) {
+    const msg = e.message ?? '';
+
+    if (msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('network')) {
+      await sleep(2000);
+      return await generateCardNews(newsItems[i].title, newsItems[i].description);
+    }
+
+    if (msg.includes('429')) {
+      for (let s = 60; s > 0; s--) {
+        if (progressEl) {
+          progressEl.style.color = '#d97706';
+          progressEl.textContent = `Gemini 한도 초과 (분당 15회). ${s}초 후 자동 재시도… (${i + 1}/${newsItems.length})`;
+        }
+        await sleep(1000);
+      }
+      if (progressEl) progressEl.style.color = '';
+      return await generateCardNews(newsItems[i].title, newsItems[i].description);
+    }
+
+    throw e;
+  }
+}
+
 /* ===== 앱 상태 ===== */
 let newsItems = [];
 let cardData = {}; // index -> card array | null | 'blocked'
@@ -411,6 +442,28 @@ function toggleSaveFromSlide(e) {
   toggleSave(currentNewsIndex);
 }
 
+async function retryCard(i, e) {
+  e?.stopPropagation();
+  updateItemBadge(i, 'loading');
+  try {
+    const cards = await generateWithRetryAndBackoff(i);
+    cardData[i] = cards;
+    updateItemBadge(i, 'ready');
+    updateItemSaveIcon(i);
+    if (currentNewsIndex === i) updateSlideSaveBtn(i);
+    saveSession();
+    showToast('카드뉴스가 생성되었습니다.');
+  } catch (err) {
+    const msg = err.message ?? '';
+    const isSafety = msg.startsWith('SAFETY_BLOCK') || msg === 'EMPTY_RESPONSE';
+    cardData[i] = isSafety ? 'blocked' : null;
+    updateItemBadge(i, isSafety ? 'blocked' : 'error');
+    updateItemSaveIcon(i);
+    saveSession();
+    showToast(isSafety ? '안전 정책으로 생성 불가합니다.' : '생성 실패. 잠시 후 다시 눌러 주세요.');
+  }
+}
+
 function countUnsavedGeneratedCards() {
   let n = 0;
   for (let i = 0; i < newsItems.length; i++) {
@@ -432,7 +485,8 @@ async function fetchAndGenerate() {
     if (!ok) return;
   }
 
-  const rssUrl = document.getElementById('rssSource').value;
+  const customUrl = document.getElementById('customRssUrl')?.value.trim();
+  const rssUrl = customUrl || document.getElementById('rssSource').value;
   const fetchBtn = document.getElementById('fetchBtn');
   const progressEl = document.getElementById('progressMsg');
 
@@ -474,7 +528,7 @@ async function fetchAndGenerate() {
       updateItemBadge(i, 'loading');
 
       try {
-        const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
+        const cards = await generateWithRetryAndBackoff(i);
         cardData[i] = cards;
         updateItemBadge(i, 'ready');
         updateItemSaveIcon(i);
@@ -484,38 +538,12 @@ async function fetchAndGenerate() {
       } catch (e) {
         const msg = e.message ?? '';
         const isSafety = msg.startsWith('SAFETY_BLOCK') || msg === 'EMPTY_RESPONSE';
-        const isLimit = msg.includes('429');
-        const isNetwork = msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('network');
-
-        if (isNetwork) {
-          await new Promise(r => setTimeout(r, 2000));
-          try {
-            const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
-            cardData[i] = cards;
-            updateItemBadge(i, 'ready');
-            updateItemSaveIcon(i);
-            if (currentNewsIndex === i) updateSlideSaveBtn(i);
-            saveSession();
-            okCount++;
-            if (i < newsItems.length - 1) await new Promise(r => setTimeout(r, 1000));
-            continue;
-          } catch {
-            // 재시도도 실패 시 아래 fallback 처리
-          }
-        }
-
         cardData[i] = isSafety ? 'blocked' : null;
         updateItemBadge(i, isSafety ? 'blocked' : 'error');
         updateItemSaveIcon(i);
         saveSession();
         failCount++;
         if (!firstErrMsg) firstErrMsg = msg;
-
-        if (isLimit) {
-          progressEl.style.color = '#dc2626';
-          progressEl.textContent = 'Gemini 무료 한도 초과 (분당 15회). 약 1분 후 버튼을 다시 눌러 주세요.';
-          return;
-        }
       }
 
       if (i < newsItems.length - 1) await new Promise(r => setTimeout(r, 1000));
@@ -546,7 +574,10 @@ function renderGrid(items) {
       ${item.source ? `<div class="news-item-source">${escHtml(item.source)}</div>` : ''}
       <div class="news-item-title">${escHtml(item.title)}</div>
       ${item.description ? `<div class="news-item-desc">${escHtml(item.description)}</div>` : ''}
-      <span class="news-item-badge badge-pending" id="badge-${i}">생성 대기</span>
+      <div class="news-item-footer">
+        <span class="news-item-badge badge-pending" id="badge-${i}">생성 대기</span>
+        <button class="retry-btn" id="retry-btn-${i}" onclick="retryCard(${i}, event)" hidden aria-label="재시도">↺ 재시도</button>
+      </div>
     </div>
   `).join('');
 
@@ -569,6 +600,9 @@ function updateItemBadge(i, state) {
   badge.textContent = label;
   if (state === 'loading') item.classList.add('generating');
   else item.classList.remove('generating');
+
+  const retryBtn = document.getElementById(`retry-btn-${i}`);
+  if (retryBtn) retryBtn.hidden = state !== 'error';
 }
 
 /* ===== 슬라이드 ===== */

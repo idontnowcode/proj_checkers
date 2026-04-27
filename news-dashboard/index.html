@@ -50,6 +50,11 @@
         </select>
         <button class="btn btn-primary" id="fetchBtn" onclick="fetchAndGenerate()">뉴스 수집 &amp; 카드뉴스 생성</button>
       </div>
+      <div class="custom-rss-row">
+        <input type="url" id="customRssUrl" class="custom-rss-input"
+               placeholder="또는 RSS URL 직접 입력 (입력 시 위 목록 무시)"
+               spellcheck="false" autocomplete="off">
+      </div>
       <div id="progressMsg" class="progress-msg" hidden></div>
     </section>
 
