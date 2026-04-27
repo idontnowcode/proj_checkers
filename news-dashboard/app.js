@@ -172,8 +172,22 @@ async function fetchWithFallback(rssUrl) {
     } catch { clearTimeout(t); }
   }
 
-  throw new Error('모든 CORS 프록시 실패. RSS 소스를 "구글 뉴스"로 변경하거나 잠시 후 다시 시도해 주세요.');
+  // 모든 프록시 실패 시 샘플 데이터로 폴백
+  return null;
 }
+
+const SAMPLE_NEWS = [
+  { title: '인공지능 기술 발전으로 산업 지형 급변', description: '생성형 AI가 다양한 산업 분야에 빠르게 도입되면서 기업들의 업무 방식이 크게 바뀌고 있다. 특히 제조·금융·의료 분야에서 AI 도입 속도가 빨라지고 있다.', source: '샘플 뉴스', link: '#', pubDate: '' },
+  { title: '글로벌 경제 불확실성 속 국내 증시 동향', description: '미국 연방준비제도의 금리 정책 결정을 앞두고 국내외 증시가 관망세를 보이고 있다. 코스피는 소폭 등락을 반복하며 박스권을 유지하고 있다.', source: '샘플 뉴스', link: '#', pubDate: '' },
+  { title: '기후 변화 대응 위한 국제 협약 추진', description: '주요 20개국 정상들이 탄소 중립 목표 달성을 위한 새로운 국제 협약을 논의하고 있다. 2030년까지 탄소 배출량을 절반으로 줄이는 방안이 핵심 의제다.', source: '샘플 뉴스', link: '#', pubDate: '' },
+  { title: '전기차 시장 경쟁 심화, 가격 인하 전쟁 돌입', description: '글로벌 전기차 업체들이 시장 점유율 확보를 위해 잇따라 가격을 인하하고 있다. 국내 완성차 업체들도 경쟁력 강화 방안을 모색 중이다.', source: '샘플 뉴스', link: '#', pubDate: '' },
+  { title: '반도체 업황 회복세, 수출 증가 전망', description: '글로벌 반도체 수요가 회복되면서 국내 반도체 수출이 증가세로 돌아설 것으로 전망된다. AI 서버용 고대역폭 메모리 수요가 핵심 성장 동력이다.', source: '샘플 뉴스', link: '#', pubDate: '' },
+  { title: '청년 주거 문제 해결 위한 정부 대책 발표', description: '정부가 청년층의 주거 부담을 줄이기 위해 공공임대 주택 공급을 대폭 늘리는 방안을 발표했다. 역세권을 중심으로 소형 주택 1만 호를 추가 공급할 예정이다.', source: '샘플 뉴스', link: '#', pubDate: '' },
+  { title: '의료 AI 진단 기술, 임상 적용 확대', description: 'AI 기반 의료 영상 판독 기술이 주요 대형병원에 도입되면서 진단 정확도와 속도가 크게 향상되고 있다. 의사들의 업무 부담 경감 효과도 보고되고 있다.', source: '샘플 뉴스', link: '#', pubDate: '' },
+  { title: '식품 물가 상승세 지속, 장바구니 부담 가중', description: '채소·과일 등 신선식품 가격이 지속적으로 오르면서 소비자들의 장바구니 부담이 커지고 있다. 이상기후로 인한 작황 부진이 주된 원인으로 지목된다.', source: '샘플 뉴스', link: '#', pubDate: '' },
+  { title: '우주 탐사 경쟁 가속화, 달 기지 건설 청사진 공개', description: '미국·중국·유럽 등 주요국이 달 기지 건설 계획을 잇따라 발표하며 새로운 우주 경쟁이 본격화되고 있다. 민간 기업들의 참여도 활발해지고 있다.', source: '샘플 뉴스', link: '#', pubDate: '' },
+  { title: '온라인 플랫폼 규제 강화, 빅테크 대응 분주', description: '국내외 규제 당국이 온라인 플랫폼의 시장 지배력 남용을 제한하는 법안을 추진하면서 빅테크 기업들이 대응책 마련에 분주하다.', source: '샘플 뉴스', link: '#', pubDate: '' }
+];
 
 function parseRss2Json(json) {
   return json.items.map(item => ({
@@ -230,7 +244,8 @@ function deduplicateByKeyword(items, threshold = 0.7) {
 }
 
 async function getNewsHeadlines(rssUrl, count = 10) {
-  const items = await fetchWithFallback(rssUrl); // fetchWithFallback이 배열 직접 반환
+  const items = await fetchWithFallback(rssUrl);
+  if (!items) return null; // 폴백 신호
   return deduplicateByKeyword(items, 0.7).slice(0, count);
 }
 
@@ -256,16 +271,25 @@ async function fetchAndGenerate() {
   progressEl.hidden = false;
 
   try {
-    newsItems = await getNewsHeadlines(rssUrl, 10);
-    if (newsItems.length === 0) {
-      progressEl.textContent = '수집된 뉴스가 없습니다.';
-      return;
+    let fetched = await getNewsHeadlines(rssUrl, 10);
+    let usingSample = false;
+    if (!fetched || fetched.length === 0) {
+      fetched = SAMPLE_NEWS;
+      usingSample = true;
     }
+    newsItems = fetched;
 
     cardData = {};
     renderGrid(newsItems);
     document.getElementById('newsGrid').hidden = false;
-    document.getElementById('newsCount').textContent = `(${newsItems.length}건)`;
+    const countEl = document.getElementById('newsCount');
+    if (usingSample) {
+      countEl.textContent = `(샘플 데이터 — RSS 수집 불가, 카드뉴스 생성은 정상 작동합니다)`;
+      countEl.style.color = '#d97706';
+    } else {
+      countEl.textContent = `(${newsItems.length}건)`;
+      countEl.style.color = '';
+    }
 
     // 뉴스별 카드뉴스 순차 생성
     for (let i = 0; i < newsItems.length; i++) {
