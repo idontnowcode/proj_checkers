@@ -22,6 +22,15 @@ function getKey() {
   return localStorage.getItem('gemini_api_key') ?? '';
 }
 
+function showToast(msg) {
+  let toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
 function showStatus(id, msg, type) {
   const el = document.getElementById(id);
   el.textContent = msg;
@@ -58,7 +67,14 @@ async function callGemini(prompt, responseSchema = null) {
   }
 
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+
+  // 안전 정책 차단 또는 빈 응답 감지
+  const candidate = data.candidates?.[0];
+  if (!candidate?.content) {
+    const reason = candidate?.finishReason ?? data.promptFeedback?.blockReason ?? 'BLOCKED';
+    throw new Error(`SAFETY_BLOCK:${reason}`);
+  }
+  return candidate.content.parts?.[0]?.text ?? '';
 }
 
 async function generateCardNews(headline, description) {
@@ -88,6 +104,7 @@ async function generateCardNews(headline, description) {
   };
 
   const raw = await callGemini(prompt, schema);
+  if (!raw || !raw.trim()) throw new Error('EMPTY_RESPONSE');
   return JSON.parse(raw);
 }
 
@@ -300,8 +317,9 @@ async function fetchAndGenerate() {
         cardData[i] = cards;
         updateItemBadge(i, 'ready');
       } catch (e) {
-        cardData[i] = null;
-        updateItemBadge(i, 'error');
+        const isSafety = e.message.startsWith('SAFETY_BLOCK') || e.message === 'EMPTY_RESPONSE';
+        cardData[i] = isSafety ? 'blocked' : null;
+        updateItemBadge(i, isSafety ? 'blocked' : 'error');
         if (e.message.includes('API 키가 설정되지 않았습니다')) {
           progressEl.textContent = 'API 키 오류로 중단되었습니다.';
           break;
@@ -310,6 +328,7 @@ async function fetchAndGenerate() {
           progressEl.textContent = '요청 한도 초과. 잠시 후 다시 시도해 주세요.';
           break;
         }
+        // 안전 정책 차단은 다음 뉴스로 계속 진행
       }
     }
 
@@ -343,7 +362,8 @@ function updateItemBadge(i, state) {
     ready:   ['badge-ready',   '카드뉴스 보기'],
     pending: ['badge-pending', '생성 대기'],
     loading: ['badge-loading', '생성 중…'],
-    error:   ['badge-error',   '생성 실패']
+    error:   ['badge-error',   '생성 실패'],
+    blocked: ['badge-error',   '안전 정책 제한']
   };
   const [cls, label] = map[state] ?? map.pending;
   badge.className = `news-item-badge ${cls}`;
@@ -354,11 +374,14 @@ function updateItemBadge(i, state) {
 
 /* ===== 슬라이드 ===== */
 function openSlide(i) {
-  if (!cardData[i]) {
-    if (cardData[i] === null) {
-      alert('이 뉴스의 카드뉴스 생성에 실패했습니다.');
+  const d = cardData[i];
+  if (!d || typeof d !== 'object' || !Array.isArray(d)) {
+    if (d === 'blocked') {
+      showToast('안전 정책으로 인해 이 뉴스의 카드뉴스를 생성할 수 없습니다.');
+    } else if (d === null) {
+      showToast('카드뉴스 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');
     } else {
-      alert('카드뉴스 생성 중입니다. 잠시 후 다시 시도해 주세요.');
+      showToast('카드뉴스 생성 중입니다. 잠시 후 다시 눌러 주세요.');
     }
     return;
   }

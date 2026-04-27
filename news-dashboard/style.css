@@ -350,7 +350,32 @@ a:hover { text-decoration: underline; }
   text-align: center;
 }
 
-/* 12. 빈 상태 */
+/* 12. 토스트 알림 */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(1rem);
+  background: #1f2937;
+  color: #fff;
+  padding: .75rem 1.4rem;
+  border-radius: 8px;
+  font-size: .88rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s, transform .25s;
+  z-index: 2000;
+  max-width: calc(100vw - 2rem);
+  white-space: normal;
+  text-align: center;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* 13. 빈 상태 */
 .empty-state {
   grid-column: 1 / -1;
   text-align: center;
