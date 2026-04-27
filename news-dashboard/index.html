@@ -36,11 +36,12 @@
       <h2>뉴스 수집 및 카드뉴스 생성</h2>
       <div class="control-row">
         <select id="rssSource">
+          <option value="https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko" selected>구글 뉴스 (한국어) — 권장</option>
+          <option value="https://feeds.bbci.co.uk/korean/rss.xml">BBC 코리아</option>
           <option value="https://news.naver.com/rss/main.xml">네이버 뉴스 (전체)</option>
           <option value="https://news.naver.com/rss/politics.xml">네이버 뉴스 (정치)</option>
           <option value="https://news.naver.com/rss/economic.xml">네이버 뉴스 (경제)</option>
           <option value="https://news.naver.com/rss/society.xml">네이버 뉴스 (사회)</option>
-          <option value="https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko">구글 뉴스 (한국어)</option>
         </select>
         <button class="btn btn-primary" id="fetchBtn" onclick="fetchAndGenerate()">뉴스 수집 &amp; 카드뉴스 생성</button>
       </div>

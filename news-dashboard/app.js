@@ -93,54 +93,86 @@ async function generateCardNews(headline, description) {
 
 /* ===== RSS Fetcher ===== */
 
-// 프록시마다 응답 형식이 다르므로 각각 별도 처리
+// 프록시마다 응답 형식이 다르므로 각각 별도 처리 (5단계 폴백)
 async function fetchWithFallback(rssUrl) {
-  // 1. rss2json.com — RSS 전용 JSON API (CORS 지원, XML 파싱 불필요)
-  try {
+  const strategies = [
+    // 1. rss2json.com — RSS 전용 JSON API, XML 파싱 불필요
+    {
+      label: 'rss2json.com',
+      run: async signal => {
+        const res = await fetch(
+          `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`,
+          { signal }
+        );
+        if (!res.ok) return null;
+        const json = await res.json();
+        return json.status === 'ok' && json.items?.length ? parseRss2Json(json) : null;
+      }
+    },
+    // 2. allorigins.win /raw — 원시 텍스트 직접 반환
+    {
+      label: 'allorigins /raw',
+      run: async signal => {
+        const res = await fetch(
+          `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`,
+          { signal }
+        );
+        if (!res.ok) return null;
+        return parseRSS(await res.text());
+      }
+    },
+    // 3. allorigins.win /get — JSON 래퍼 { contents: '<xml>...' }
+    {
+      label: 'allorigins /get',
+      run: async signal => {
+        const res = await fetch(
+          `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`,
+          { signal }
+        );
+        if (!res.ok) return null;
+        const json = await res.json();
+        return json.contents ? parseRSS(json.contents) : null;
+      }
+    },
+    // 4. corsproxy.io — 원시 XML 텍스트 반환
+    {
+      label: 'corsproxy.io',
+      run: async signal => {
+        const res = await fetch(
+          `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`,
+          { signal }
+        );
+        if (!res.ok) return null;
+        return parseRSS(await res.text());
+      }
+    },
+    // 5. codetabs.com — 원시 텍스트 반환
+    {
+      label: 'codetabs.com',
+      run: async signal => {
+        const res = await fetch(
+          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`,
+          { signal }
+        );
+        if (!res.ok) return null;
+        return parseRSS(await res.text());
+      }
+    }
+  ];
+
+  const progressEl = document.getElementById('progressMsg');
+  for (const s of strategies) {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 8000);
-    const res = await fetch(
-      `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`,
-      { signal: ctrl.signal }
-    );
-    clearTimeout(t);
-    if (res.ok) {
-      const json = await res.json();
-      if (json.status === 'ok' && json.items?.length) return parseRss2Json(json);
-    }
-  } catch {}
+    if (progressEl) progressEl.textContent = `RSS 수집 중… (${s.label} 시도)`;
+    try {
+      const result = await s.run(ctrl.signal);
+      clearTimeout(t);
+      if (result && result.length > 0) return result;
+    } catch { clearTimeout(t); }
+  }
 
-  // 2. allorigins.win — JSON 래퍼({ contents: '<xml>...' }) 형식
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 8000);
-    const res = await fetch(
-      `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`,
-      { signal: ctrl.signal }
-    );
-    clearTimeout(t);
-    if (res.ok) {
-      const json = await res.json();
-      if (json.contents) return parseRSS(json.contents);
-    }
-  } catch {}
-
-  // 3. corsproxy.io — 원시 XML 텍스트 반환 (JSON 아님, res.text() 필수)
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 8000);
-    const res = await fetch(
-      `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`,
-      { signal: ctrl.signal }
-    );
-    clearTimeout(t);
-    if (res.ok) {
-      const xml = await res.text();
-      return parseRSS(xml);
-    }
-  } catch {}
-
-  throw new Error('모든 CORS 프록시 실패. 잠시 후 다시 시도해 주세요.');
+  throw new Error('모든 CORS 프록시 실패. RSS 소스를 "구글 뉴스"로 변경하거나 잠시 후 다시 시도해 주세요.');
 }
 
 function parseRss2Json(json) {
