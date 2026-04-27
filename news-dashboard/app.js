@@ -1,5 +1,6 @@
 /* ===== Gemini API ===== */
-const GEMINI_MODEL = 'gemini-2.0-flash';
+// 모델 우선순위: 최신순으로 시도, 404 시 다음 모델로 폴백
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash-001', 'gemini-1.5-flash'];
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 function saveKey() {
@@ -41,7 +42,6 @@ async function callGemini(prompt, responseSchema = null) {
   const apiKey = getKey();
   if (!apiKey) throw new Error('API 키가 설정되지 않았습니다.');
 
-  const url = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
@@ -54,27 +54,34 @@ async function callGemini(prompt, responseSchema = null) {
     }
   };
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
+  let lastErr = null;
+  for (const model of GEMINI_MODELS) {
+    const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    const msg = err?.error?.message ?? res.statusText;
-    throw new Error(`Gemini API 오류 (${res.status}): ${msg}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err?.error?.message ?? res.statusText;
+      lastErr = new Error(`Gemini API 오류 (${res.status}): ${msg}`);
+      // 404(모델 없음)는 다음 모델로 폴백, 그 외 오류는 즉시 throw
+      if (res.status !== 404) throw lastErr;
+      continue;
+    }
+
+    const data = await res.json();
+    const candidate = data.candidates?.[0];
+    if (!candidate?.content) {
+      const reason = candidate?.finishReason ?? data.promptFeedback?.blockReason ?? 'BLOCKED';
+      throw new Error(`SAFETY_BLOCK:${reason}`);
+    }
+    return candidate.content.parts?.[0]?.text ?? '';
   }
 
-  const data = await res.json();
-
-  // 안전 정책 차단 또는 빈 응답 감지
-  const candidate = data.candidates?.[0];
-  if (!candidate?.content) {
-    const reason = candidate?.finishReason ?? data.promptFeedback?.blockReason ?? 'BLOCKED';
-    throw new Error(`SAFETY_BLOCK:${reason}`);
-  }
-  return candidate.content.parts?.[0]?.text ?? '';
+  throw lastErr ?? new Error('사용 가능한 Gemini 모델이 없습니다.');
 }
 
 async function generateCardNews(headline, description) {
