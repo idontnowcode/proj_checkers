@@ -308,44 +308,35 @@ async function fetchAndGenerate() {
       countEl.style.color = '';
     }
 
-    // 뉴스별 카드뉴스 순차 생성 — 개별 실패해도 전체 루프 계속
-    let keyInvalid = false;
+    // 뉴스별 카드뉴스 순차 생성 — 개별 실패해도 전체 루프 완주
     for (let i = 0; i < newsItems.length; i++) {
       progressEl.textContent = `카드뉴스 생성 중… (${i + 1}/${newsItems.length})`;
       updateItemBadge(i, 'loading');
-
-      if (keyInvalid) {
-        // 키 오류 확정 시 남은 항목 즉시 실패 처리 (API 호출 생략)
-        cardData[i] = null;
-        updateItemBadge(i, 'error');
-        continue;
-      }
 
       try {
         const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
         cardData[i] = cards;
         updateItemBadge(i, 'ready');
       } catch (e) {
-        const isSafety = e.message.startsWith('SAFETY_BLOCK') || e.message === 'EMPTY_RESPONSE';
-        const isKeyErr = e.message.includes('API 키가 설정되지 않았습니다')
-                      || e.message.includes('401') || e.message.includes('403');
-        const isLimit  = e.message.includes('429');
+        const msg = e.message ?? '';
+        const isSafety = msg.startsWith('SAFETY_BLOCK') || msg === 'EMPTY_RESPONSE';
+        const isLimit  = msg.includes('429');
 
         cardData[i] = isSafety ? 'blocked' : null;
         updateItemBadge(i, isSafety ? 'blocked' : 'error');
 
-        if (isKeyErr) {
-          keyInvalid = true;
-          showToast('API 키를 확인해 주세요. 저장된 키가 유효하지 않을 수 있습니다.');
-        } else if (isLimit) {
-          showToast('요청 한도 초과. 4초 대기 후 재시도합니다.');
+        // 실제 에러 메시지를 1.5초 표시 후 계속
+        progressEl.textContent = `#${i + 1} 실패: ${msg.slice(0, 70)}`;
+        await new Promise(r => setTimeout(r, 1500));
+
+        if (isLimit) {
+          progressEl.textContent = '한도 초과 — 4초 대기 후 재시도…';
           await new Promise(r => setTimeout(r, 4000));
-          // 한도 초과 항목 재시도
           try {
             const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
             cardData[i] = cards;
             updateItemBadge(i, 'ready');
-          } catch { /* 재시도도 실패 시 그냥 넘어감 */ }
+          } catch { /* 재시도 실패 시 그냥 넘어감 */ }
         }
       }
 
@@ -378,7 +369,7 @@ function renderGrid(items) {
 function updateItemBadge(i, state) {
   const badge = document.getElementById(`badge-${i}`);
   const item = document.getElementById(`item-${i}`);
-  if (!badge) return;
+  if (!badge || !item) return;
   const map = {
     ready:   ['badge-ready',   '카드뉴스 보기'],
     pending: ['badge-pending', '생성 대기'],
