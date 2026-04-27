@@ -330,8 +330,22 @@ async function fetchAndGenerate() {
         okCount++;
       } catch (e) {
         const msg = e.message ?? '';
-        const isSafety = msg.startsWith('SAFETY_BLOCK') || msg === 'EMPTY_RESPONSE';
-        const isLimit  = msg.includes('429');
+        const isSafety  = msg.startsWith('SAFETY_BLOCK') || msg === 'EMPTY_RESPONSE';
+        const isLimit   = msg.includes('429');
+        const isNetwork = msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('network');
+
+        // 네트워크 순단은 2초 후 1회 재시도
+        if (isNetwork) {
+          await new Promise(r => setTimeout(r, 2000));
+          try {
+            const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
+            cardData[i] = cards;
+            updateItemBadge(i, 'ready');
+            okCount++;
+            if (i < newsItems.length - 1) await new Promise(r => setTimeout(r, 1000));
+            continue;
+          } catch { /* 재시도도 실패 시 아래로 */ }
+        }
 
         cardData[i] = isSafety ? 'blocked' : null;
         updateItemBadge(i, isSafety ? 'blocked' : 'error');
@@ -339,15 +353,14 @@ async function fetchAndGenerate() {
         if (!firstErrMsg) firstErrMsg = msg;
 
         if (isLimit) {
-          // 한도 초과 시 재시도 없이 즉시 안내 — 재호출은 한도를 더 소모할 뿐
           progressEl.style.color = '#dc2626';
           progressEl.textContent = `Gemini 무료 한도 초과 (분당 15회). 약 1분 후 버튼을 다시 눌러 주세요.`;
-          return; // finally 블록이 버튼을 다시 활성화함
+          return;
         }
       }
 
-      // 호출 간격 4초 (15 RPM 기준 안전 마진)
-      if (i < newsItems.length - 1) await new Promise(r => setTimeout(r, 4000));
+      // 호출 간격 1초 (단일 실행은 15 RPM 이내, 화면 비활성화로 인한 fetch 차단 최소화)
+      if (i < newsItems.length - 1) await new Promise(r => setTimeout(r, 1000));
     }
 
     // 결과 요약 — 실패 있으면 에러 원인을 영구 표시
