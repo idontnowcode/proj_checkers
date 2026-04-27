@@ -285,6 +285,7 @@ async function fetchAndGenerate() {
 
   fetchBtn.disabled = true;
   progressEl.textContent = 'RSS 피드 수집 중…';
+  progressEl.style.color = '';
   progressEl.hidden = false;
 
   try {
@@ -331,18 +332,15 @@ async function fetchAndGenerate() {
         if (!firstErrMsg) firstErrMsg = msg;
 
         if (isLimit) {
-          progressEl.textContent = '한도 초과 — 4초 대기 후 재시도…';
-          await new Promise(r => setTimeout(r, 4000));
-          try {
-            const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
-            cardData[i] = cards;
-            updateItemBadge(i, 'ready');
-            okCount++; failCount--;
-          } catch { /* 재시도 실패 */ }
+          // 한도 초과 시 재시도 없이 즉시 안내 — 재호출은 한도를 더 소모할 뿐
+          progressEl.style.color = '#dc2626';
+          progressEl.textContent = `Gemini 무료 한도 초과 (분당 15회). 약 1분 후 버튼을 다시 눌러 주세요.`;
+          return; // finally 블록이 버튼을 다시 활성화함
         }
       }
 
-      if (i < newsItems.length - 1) await new Promise(r => setTimeout(r, 800));
+      // 호출 간격 4초 (15 RPM 기준 안전 마진)
+      if (i < newsItems.length - 1) await new Promise(r => setTimeout(r, 4000));
     }
 
     // 결과 요약 — 실패 있으면 에러 원인을 영구 표시
