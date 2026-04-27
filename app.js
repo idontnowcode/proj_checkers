@@ -78,16 +78,16 @@ async function callGemini(prompt, responseSchema = null) {
 }
 
 async function generateCardNews(headline, description) {
-  const prompt = `다음 뉴스를 바탕으로 인스타그램 스타일 카드뉴스를 작성하라.
+  const prompt = `당신은 뉴스 전문 편집자입니다. 아래 뉴스 기사를 독자가 이해하기 쉽도록 인스타그램 카드뉴스 형식으로 객관적이고 중립적으로 요약하세요. 자극적 표현은 사실 중심으로 순화하세요.
+
 헤드라인: ${headline}
 본문: ${description || '(본문 없음)'}
 
-요구사항:
-- 첫 번째 카드: type="title" — 핵심 주제를 한 문장으로 (heading은 제목, body는 한 줄 부제)
-- 중간 카드: type="content" — 핵심 사실 또는 포인트 하나씩 (2~5장)
-- 마지막 카드: type="conclusion" — 시사점 또는 행동 제안
-- 전체 최대 7장, 각 카드 body는 80자 이내
-- heading은 20자 이내, 임팩트 있게
+출력 형식:
+- 첫 번째 카드: type="title" — 핵심 주제 한 문장 (heading: 제목, body: 한 줄 부제)
+- 중간 카드: type="content" — 핵심 사실 하나씩 (2~5장)
+- 마지막 카드: type="conclusion" — 시사점 또는 독자 행동 제안
+- 전체 최대 7장, 각 body 80자 이내, heading 20자 이내
 - 언어: 한국어`;
 
   const schema = {
@@ -308,28 +308,49 @@ async function fetchAndGenerate() {
       countEl.style.color = '';
     }
 
-    // 뉴스별 카드뉴스 순차 생성
+    // 뉴스별 카드뉴스 순차 생성 — 개별 실패해도 전체 루프 계속
+    let keyInvalid = false;
     for (let i = 0; i < newsItems.length; i++) {
       progressEl.textContent = `카드뉴스 생성 중… (${i + 1}/${newsItems.length})`;
       updateItemBadge(i, 'loading');
+
+      if (keyInvalid) {
+        // 키 오류 확정 시 남은 항목 즉시 실패 처리 (API 호출 생략)
+        cardData[i] = null;
+        updateItemBadge(i, 'error');
+        continue;
+      }
+
       try {
         const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
         cardData[i] = cards;
         updateItemBadge(i, 'ready');
       } catch (e) {
         const isSafety = e.message.startsWith('SAFETY_BLOCK') || e.message === 'EMPTY_RESPONSE';
+        const isKeyErr = e.message.includes('API 키가 설정되지 않았습니다')
+                      || e.message.includes('401') || e.message.includes('403');
+        const isLimit  = e.message.includes('429');
+
         cardData[i] = isSafety ? 'blocked' : null;
         updateItemBadge(i, isSafety ? 'blocked' : 'error');
-        if (e.message.includes('API 키가 설정되지 않았습니다')) {
-          progressEl.textContent = 'API 키 오류로 중단되었습니다.';
-          break;
+
+        if (isKeyErr) {
+          keyInvalid = true;
+          showToast('API 키를 확인해 주세요. 저장된 키가 유효하지 않을 수 있습니다.');
+        } else if (isLimit) {
+          showToast('요청 한도 초과. 4초 대기 후 재시도합니다.');
+          await new Promise(r => setTimeout(r, 4000));
+          // 한도 초과 항목 재시도
+          try {
+            const cards = await generateCardNews(newsItems[i].title, newsItems[i].description);
+            cardData[i] = cards;
+            updateItemBadge(i, 'ready');
+          } catch { /* 재시도도 실패 시 그냥 넘어감 */ }
         }
-        if (e.message.includes('429')) {
-          progressEl.textContent = '요청 한도 초과. 잠시 후 다시 시도해 주세요.';
-          break;
-        }
-        // 안전 정책 차단은 다음 뉴스로 계속 진행
       }
+
+      // API 호출 간격 (과호출 방지)
+      if (i < newsItems.length - 1) await new Promise(r => setTimeout(r, 800));
     }
 
     progressEl.textContent = '생성 완료! 뉴스 카드를 클릭하면 카드뉴스를 볼 수 있습니다.';
