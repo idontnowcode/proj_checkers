@@ -46,7 +46,7 @@ async function callGemini(prompt, responseSchema = null) {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0.4,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096,
       ...(responseSchema && {
         responseMimeType: 'application/json',
         responseSchema
@@ -112,7 +112,25 @@ async function generateCardNews(headline, description) {
 
   const raw = await callGemini(prompt, schema);
   if (!raw || !raw.trim()) throw new Error('EMPTY_RESPONSE');
-  return JSON.parse(raw);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const repaired = repairJson(raw);
+    if (repaired && repaired.length > 0) return repaired;
+    throw new Error('JSON 파싱 오류 — 응답이 잘렸거나 형식이 올바르지 않습니다.');
+  }
+}
+
+function repairJson(raw) {
+  // 잘린 JSON 배열 복구: 마지막 완전한 객체(}) 이후를 닫아 재파싱
+  const start = raw.indexOf('[');
+  const lastBrace = raw.lastIndexOf('}');
+  if (start < 0 || lastBrace < 0) return null;
+  try {
+    return JSON.parse(raw.slice(start, lastBrace + 1) + ']');
+  } catch {
+    return null;
+  }
 }
 
 /* ===== RSS Fetcher ===== */
