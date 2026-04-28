@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevPortal — API 탐색기</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="#" class="logo">
+        <span class="logo-dot"></span>
+        DevPortal
+      </a>
+      <nav class="main-nav">
+        <a href="#" class="nav-link">앱</a>
+        <a href="#" class="nav-link active">문서</a>
+        <a href="#" class="nav-link">도구</a>
+        <a href="#" class="nav-link">포럼</a>
+      </nav>
+      <div class="header-actions">
+        <div class="search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="검색" id="globalSearch">
+        </div>
+        <button class="btn-login">로그인</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">API Explorer</div>
+      <h1 class="hero-title">API 엔드포인트 탐색기</h1>
+      <p class="hero-desc">DevPortal의 모든 REST API를 검색하고 상태를 실시간으로 확인하세요.</p>
+      <div class="hero-stats">
+        <div class="stat"><span class="stat-num" id="totalCount">0</span><span class="stat-label">전체 엔드포인트</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num green" id="onlineCount">0</span><span class="stat-label">정상</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num yellow" id="degradedCount">0</span><span class="stat-label">지연</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num red" id="offlineCount">0</span><span class="stat-label">오류</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main -->
+  <main class="main-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="filter-section">
+        <p class="filter-title">카테고리</p>
+        <label class="filter-item active" data-cat="all">
+          <span class="filter-dot all"></span>전체
+        </label>
+        <label class="filter-item" data-cat="auth">
+          <span class="filter-dot"></span>인증 (Auth)
+        </label>
+        <label class="filter-item" data-cat="user">
+          <span class="filter-dot"></span>사용자 (User)
+        </label>
+        <label class="filter-item" data-cat="message">
+          <span class="filter-dot"></span>메시지 (Message)
+        </label>
+        <label class="filter-item" data-cat="storage">
+          <span class="filter-dot"></span>스토리지 (Storage)
+        </label>
+        <label class="filter-item" data-cat="analytics">
+          <span class="filter-dot"></span>분석 (Analytics)
+        </label>
+      </div>
+      <div class="filter-section">
+        <p class="filter-title">메서드</p>
+        <label class="filter-item" data-method="GET"><span class="method-badge get">GET</span></label>
+        <label class="filter-item" data-method="POST"><span class="method-badge post">POST</span></label>
+        <label class="filter-item" data-method="DELETE"><span class="method-badge delete">DELETE</span></label>
+      </div>
+      <div class="filter-section">
+        <p class="filter-title">상태</p>
+        <label class="filter-item" data-status="online"><span class="status-dot online"></span>정상</label>
+        <label class="filter-item" data-status="degraded"><span class="status-dot degraded"></span>지연</label>
+        <label class="filter-item" data-status="offline"><span class="status-dot offline"></span>오류</label>
+      </div>
+      <button class="btn-reset" id="resetFilter">필터 초기화</button>
+    </aside>
+
+    <!-- Content -->
+    <div class="content-area">
+      <div class="content-toolbar">
+        <div class="search-wrapper">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="apiSearch" placeholder="엔드포인트 검색 (예: /v2/user)">
+        </div>
+        <span class="result-count" id="resultCount"></span>
+      </div>
+      <div class="api-grid" id="apiGrid"></div>
+    </div>
+
+    <!-- Detail Panel -->
+    <aside class="detail-panel" id="detailPanel">
+      <div class="detail-header">
+        <p class="detail-label">엔드포인트 상세</p>
+        <button class="btn-close" id="closePanel">✕</button>
+      </div>
+      <div class="detail-body" id="detailBody">
+        <p class="detail-placeholder">카드를 클릭하면 상세 정보를 확인할 수 있습니다.</p>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <p class="footer-brand">DevPortal</p>
+        <p class="footer-copy">© 2026 DevPortal Corp. All rights reserved.</p>
+      </div>
+      <div class="footer-col">
+        <p class="footer-heading">제품</p>
+        <a href="#">API 탐색기</a>
+        <a href="#">SDK 다운로드</a>
+        <a href="#">상태 페이지</a>
+      </div>
+      <div class="footer-col">
+        <p class="footer-heading">지원</p>
+        <a href="#">개발자 포럼</a>
+        <a href="#">문의하기</a>
+        <a href="#">변경 이력</a>
+      </div>
+      <div class="footer-col">
+        <p class="footer-heading">약관</p>
+        <a href="#">이용약관</a>
+        <a href="#">개인정보처리방침</a>
+        <a href="#">API 정책</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
