@@ -1,11 +1,11 @@
 ---
 name: task-orchestrator
-description: Orchestrates multiple skills to complete a task end-to-end. Use this skill when the user has a finalized prompt and wants Claude to automatically plan, execute, and quality-validate the work without micromanaging each step. Trigger whenever a user says "just do it", "handle this end-to-end", "take care of everything", "run this", or pastes a detailed prompt expecting a complete result. Also trigger immediately when the user has just finished using /prompt-clarify and wants to act on the improved prompt right away.
+description: Orchestrates multiple skills to complete a task end-to-end with Agent Teams support. Use this skill when the user has a finalized prompt and wants Claude to automatically plan, execute, and quality-validate the work without micromanaging each step. Trigger whenever a user says "just do it", "handle this end-to-end", "take care of everything", "run this", or pastes a detailed prompt expecting a complete result. Also trigger immediately when the user has just finished using /prompt-clarify and wants to act on the improved prompt right away. When CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 is set, automatically spawns parallel sub-agents for independent skills to maximize throughput.
 ---
 
 # task-orchestrator
 
-사용자가 구체화된 최종 프롬프트를 제공하면, 필요한 스킬들을 자율적으로 선택·조율하고 품질 검증까지 완료하는 팀장 역할 스킬. 사용자는 실행 계획을 승인하고 최종 결과물에 OK하는 것 외에 중간 과정에 개입할 필요가 없다.
+사용자가 구체화된 최종 프롬프트를 제공하면, 필요한 스킬들을 자율적으로 선택·조율하고 품질 검증까지 완료하는 팀장 역할 스킬. **Agent Teams가 활성화된 경우 독립 단계를 병렬 서브에이전트로 실행**하여 처리 속도를 높인다.
 
 ## 사용법
 
@@ -14,6 +14,63 @@ description: Orchestrates multiple skills to complete a task end-to-end. Use thi
 ```
 
 실행 후 완성된 프롬프트를 붙여넣으면 된다. `/prompt-clarify` 출력 결과를 그대로 붙여넣어도 된다.
+
+---
+
+## Agent Teams 통합 (Claude Code 공식 기능)
+
+### 감지 및 모드 분기
+
+실행 시작 전 Agent Teams 활성화 여부를 판단하여 실행 모드를 자동 선택한다.
+
+```
+감지 조건: CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 환경변수 설정 여부
+
+활성화 시 → Team Mode (병렬 서브에이전트 실행)
+비활성화 시 → Solo Mode (단일 세션 순차 실행, 기존 동작)
+```
+
+### 병렬화 판단 기준
+
+스킬 실행 계획을 수립할 때, 각 단계를 아래 기준으로 분류한다.
+
+| 분류 | 조건 | 실행 방식 |
+|------|------|-----------|
+| 병렬 가능 | 이전 단계 출력에 의존하지 않음 | Agent 도구로 동시 실행 |
+| 직렬 필수 | 이전 단계 출력을 입력으로 사용 | 순서대로 실행 |
+
+**병렬화 우선 후보 스킬** (출력이 서로 독립적):
+- `eval-rubric` + `app-tester` + `browser-automation` → 검증 단계 동시 실행
+- `test-planner` + `prompt-clarify` → 입력 분석 단계 동시 실행
+- `skill-creator` 다수 갭 스킬 생성 → 각 스킬 파일 동시 생성
+
+### Team Mode 실행 패턴
+
+```
+Agent Teams 활성화 시:
+
+[직렬] 0단계: 갭 스킬 생성 (필요 시)
+       ↓
+[직렬] 1단계: 핵심 구현 (이후 단계들이 이 출력에 의존)
+       ↓
+[병렬] 검증 단계: eval-rubric + app-tester + browser-automation 동시 실행
+         ├─ Agent("eval-rubric 실행", prompt=결과물+기준)
+         ├─ Agent("app-tester 실행", prompt=코드경로+스킬명세)
+         └─ Agent("browser-automation 실행", prompt=URL+시나리오)
+       ↓
+[직렬] 최종: 검증 결과 취합 → 과락 판정 → 보고
+```
+
+Agent 도구 호출 예시:
+
+```
+// 검증 3종을 병렬로 실행
+Agent({ description: "eval-rubric 품질 평가", prompt: "결과물 평가 기준: ..." })
+Agent({ description: "app-tester 스펙 검증", prompt: "코드 경로: ..., 스킬: ..." })
+Agent({ description: "browser-automation UI 검증", prompt: "URL: ..., 시나리오: 기본 5종" })
+```
+
+---
 
 ## 동작 방식
 
@@ -25,11 +82,11 @@ description: Orchestrates multiple skills to complete a task end-to-end. Use thi
 입력에 `/prompt-clarify` 출력이 포함된 경우, "스킬 추천 및 갭 검토" 섹션의 권장 스킬 목록을 우선 참조한다.
 
 **1-2. 전체 스킬 재검토**
-아래 7개 레이어, 총 85개 스킬을 대상으로 재스캔한다. 각 스킬에 대해 아래 3가지 기준으로 포함 여부를 판단한다:
+아래 7개 레이어, 총 86개 스킬을 대상으로 재스캔한다. 각 스킬에 대해 아래 3가지 기준으로 포함 여부를 판단한다:
 
 | 레이어 | 위치 | 스킬 수 |
 |--------|------|---------|
-| Project-Local | `.claude/skills/` | 9 |
+| Project-Local | `.claude/skills/` | 10 |
 | bkit Core v1.6.1 | `~/.claude/plugins/cache/bkit-marketplace/bkit/1.6.1/skills/` | 31 |
 | superpowers v5.0.6 | `~/.claude/plugins/cache/superpowers-dev/superpowers/5.0.6/skills/` | 14 |
 | Anthropic 공식 | `~/.claude/skills/` | 10 |
@@ -46,63 +103,67 @@ description: Orchestrates multiple skills to complete a task end-to-end. Use thi
 세 기준 중 2개 이상 충족하는 스킬만 실행 계획에 포함한다.
 
 **1-3. 갭 스킬 처리**
-필요하지만 존재하지 않는 스킬(갭 스킬)이 발견되면, 본 작업 실행 전에 `skill-creator`로 해당 스킬을 먼저 구현한다. 이 단계가 실행 계획의 최우선 순서가 된다.
-
-갭 스킬 판단 기준: 해당 작업 영역을 전담하는 스킬이 없고, 직접 처리 시 결과 품질이 전용 스킬 대비 의미 있게 낮을 것으로 예상되는 경우.
+필요하지만 존재하지 않는 스킬(갭 스킬)이 발견되면, 본 작업 실행 전에 `skill-creator`로 해당 스킬을 먼저 구현한다. Agent Teams 활성화 시 갭 스킬이 여러 개면 동시 생성한다.
 
 ### 2단계: 실행 계획 출력 후 즉시 실행
 
-선정된 스킬을 아래 형식으로 출력하고 **중간 승인 없이 바로 실행을 시작한다.** 사용자는 최종 결과 보고(5단계)에서만 승인한다.
+선정된 스킬과 실행 모드를 아래 형식으로 출력하고 **중간 승인 없이 바로 실행을 시작한다.**
 
 ```
-## 실행 계획
+## 실행 계획  [Team Mode / Solo Mode]
 
-### [사전 단계] 갭 스킬 생성 (갭 스킬이 있는 경우에만 표시)
-| 순서 | 스킬 | 역할 | 산출물 |
-|------|------|------|--------|
-| 0-1  | skill-creator | (갭 스킬명) 스킬 파일 생성 | .claude/skills/(갭 스킬명).md |
+### [사전 단계] 갭 스킬 생성 (있는 경우만)
+| 순서 | 스킬 | 역할 | 산출물 | 실행 방식 |
+|------|------|------|--------|-----------|
+| 0-1  | skill-creator | (갭 스킬명) 생성 | .claude/skills/.... | 병렬/직렬 |
 
 ### [본 작업]
-| 순서 | 스킬 | 역할 | 입력 | 예상 출력 |
-|------|------|------|------|-----------|
-| 1    | (스킬명 또는 직접처리) | (무엇을 처리하는지) | 사용자 프롬프트 | (산출물) |
-| 2    | (스킬명) | (무엇을 처리하는지) | 1단계 출력 | (산출물) |
-| 최종 | eval-rubric | 품질 검증 | 최종 결과물 + 원본 프롬프트 | 합격/과락 판정 |
+| 순서 | 스킬 | 역할 | 입력 | 예상 출력 | 실행 방식 |
+|------|------|------|------|-----------|-----------|
+| 1    | (스킬명) | (역할) | 프롬프트 | (산출물) | 직렬 |
+| 2-A  | eval-rubric | 품질 평가 | 결과물 | 점수 | 병렬 ← |
+| 2-B  | app-tester | 스펙 검증 | 코드 | PASS/FAIL | 병렬 ← |
+| 2-C  | browser-automation | UI 검증 | URL | QA 보고서 | 병렬 ← |
 
 → 계획대로 즉시 실행을 시작합니다.
 ```
 
-> **eval-rubric은 항상 마지막 단계로 고정한다.** 품질 기준이 없으면 무엇을 목표로 재작업할지 알 수 없기 때문이다.
+> **eval-rubric은 항상 마지막 단계 그룹에 포함한다.** 검증 스킬(app-tester, browser-automation)과 함께 병렬 실행 가능하다.
 
-### 3단계: 스킬 순차 실행
+### 3단계: 스킬 실행
 
-승인된 계획대로 스킬을 실행한다. 각 스킬 실행 시 해당 스킬의 SKILL.md 지침을 따른다.
+**Solo Mode (Agent Teams 비활성화 시)**
+- 계획 순서대로 스킬을 하나씩 실행
+- 각 스킬 완료 시 진행 상황 보고
 
-**중간 보고 형식 (각 스킬 완료 시)**
+**Team Mode (Agent Teams 활성화 시)**
+- 직렬 의존 단계: 순서대로 실행
+- 병렬 가능 단계: `Agent` 도구로 동시에 여러 서브에이전트 실행
+- 서브에이전트 프롬프트에는 필요한 컨텍스트(결과물, 파일 경로, 스킬 지침)를 모두 포함
+
+**중간 보고 형식 (각 단계 완료 시)**
 ```
-[단계 N/전체] ✓ (스킬명) 완료
-- 산출물: (결과물 한 줄 요약 또는 미리보기)
+[단계 N/전체] ✓ (스킬명) 완료  [병렬/직렬]
+- 산출물: (결과물 한 줄 요약)
 - 다음 단계: (다음 스킬명)
 ```
 
-스킬 실행 중 예상치 못한 오류·입력 부족 발생 시 즉시 중단하고 사용자에게 보고한다.
+스킬 실행 중 오류 발생 시 즉시 중단하고 사용자에게 보고한다.
 
 ### 4단계: 품질 검증 (eval-rubric)
 
-최종 결과물을 `eval-rubric`으로 평가한다.
+최종 결과물을 `eval-rubric`으로 평가한다. Team Mode에서는 app-tester, browser-automation과 병렬 실행한다.
 
 **통과 시**: 5단계로 진행한다.
 
 **과락 발생 시 — 자동 재작업 루프 (최대 2회)**
 
-2회로 제한하는 이유: 2회 이상 같은 방향으로 재시도하면 동일한 문제가 반복될 가능성이 높고, 이는 프롬프트 자체나 접근 방향의 수정이 필요한 신호이기 때문이다.
-
 ```
 재시도 1: 과락 피드백을 반영하여 결과물 재생성 → eval-rubric 재평가
-재시도 2: 재시도 1 결과가 여전히 과락이면 다른 접근 방식으로 재생성 → eval-rubric 재평가
+재시도 2: 재시도 1 결과가 여전히 과락이면 다른 접근으로 재생성 → eval-rubric 재평가
 ```
 
-2회 후에도 과락이면 아래 형식으로 보고하고 사용자 판단을 요청한다:
+2회 후에도 과락이면:
 
 ```
 ## 품질 검증 반복 실패 보고
@@ -116,59 +177,63 @@ description: Orchestrates multiple skills to complete a task end-to-end. Use thi
 지속적으로 부족한 부분: (원인 분석)
 
 다음 중 선택해 주세요:
-1. 현재 결과물로 진행 (N점 상태로 최종 승인 단계 이동)
-2. 방향을 조정하여 재시도 (어떤 방향인지 알려주세요)
+1. 현재 결과물로 진행
+2. 방향을 조정하여 재시도
 3. 작업 중단
 ```
 
-### 5단계: 최종 결과 보고 및 승인
+### 5단계: 최종 결과 보고
 
 ```
-## 작업 완료 보고
+## 작업 완료 보고  [Team Mode: N개 병렬 에이전트 / Solo Mode]
 
 ### 최종 결과물
 (결과물 전문 또는 파일 경로)
 
 ### 품질 검증 결과
-| 항목 | 점수 | 과락 여부 |
-|------|------|-----------|
-| (항목명) | N점 | 통과 |
-| ...      | ...  | ...  |
-**총점: N / 100점 — 합격**
+| 항목 | 점수 | 판정 |
+|------|------|------|
+| eval-rubric | N점 | 합격 |
+| app-tester  | N/N PASS | 합격 |
+| browser-automation | N% | 합격 |
+**종합: 합격**
 
 ### 작업 요약
+- 실행 모드: Team Mode / Solo Mode
 - 사용 스킬: (목록)
-- 재작업 발생: 없음 / N회 (사유)
+- 병렬 실행: (병렬화된 단계 목록 또는 없음)
+- 재작업: 없음 / N회 (사유)
 
 최종 승인하시겠습니까?
 ```
 
-승인하면 완료 처리한다. 수정 요청 시 해당 부분을 재작업 후 5단계를 반복한다.
+---
 
 ## 엣지 케이스 처리
 
 | 상황 | 처리 방식 |
 |------|-----------|
-| prompt-clarify 출력 없이 원시 프롬프트만 입력 | 스킬 재검토(1-2)만으로 진행, 추천 참조 없이 선정한다는 점을 안내 |
-| 갭 스킬 발생 | 실행 계획 사전 단계에 `skill-creator`로 갭 스킬 생성을 추가하고, 생성 완료 후 본 작업을 진행 |
-| 적용 가능한 스킬이 하나도 없는 경우 | "스킬 없이 직접 처리" 계획을 제시하고 eval-rubric만 유지 |
-| eval-rubric을 사용할 수 없는 경우 | 사용자에게 알리고 품질 검증 단계를 정성 평가(자기 검토)로 대체할지 확인 |
-| 사용자가 실행 계획을 거부하는 경우 | 거부 이유를 확인하고 계획을 수정하여 재제시 |
-| 실행 중 스킬 오류 발생 | 즉시 중단하고 오류 내용 보고, 재시도·건너뛰기·중단 중 선택 요청 |
+| Agent Teams 미설정 | Solo Mode로 자동 폴백, 계획에 "[Solo Mode]" 표시 |
+| 병렬 에이전트 중 하나 실패 | 나머지 에이전트 완료 후 실패 항목만 재시도 |
+| prompt-clarify 없이 원시 프롬프트 입력 | 스킬 재검토(1-2)만으로 진행 |
+| 갭 스킬 다수 발생 | Team Mode: 동시 생성 / Solo Mode: 순차 생성 |
+| 적용 가능 스킬이 없는 경우 | "직접 처리" 계획 + eval-rubric만 유지 |
+| eval-rubric 사용 불가 | 정성 평가(자기 검토)로 대체할지 사용자에게 확인 |
+| 실행 중 스킬 오류 | 즉시 중단 후 보고, 재시도·건너뛰기·중단 선택 요청 |
 
-## 예시
-
-**입력**: `/prompt-clarify` 로 개선된 프롬프트 (스킬 추천: eval-rubric)
+## 예시 — Team Mode 실행 계획
 
 ```
-## 실행 계획
+## 실행 계획  [Team Mode]
 
-| 순서 | 스킬 | 역할 | 입력 | 예상 출력 |
-|------|------|------|------|-----------|
-| 1 | 직접 처리 | SaaS 광고 카피 초안 작성 | 프롬프트 | 카피 초안 3종 |
-| 2 | eval-rubric | 카피 품질 검증 | 카피 초안 + 프롬프트 | 점수 + 피드백 |
+### [본 작업]
+| 순서 | 스킬 | 역할 | 입력 | 예상 출력 | 실행 방식 |
+|------|------|------|------|-----------|-----------|
+| 1    | rss-fetcher + gemini-client + web-dev | 뉴스 웹앱 구현 | 프롬프트 | index.html + app.js | 직렬 |
+| 2-A  | eval-rubric | 코드 품질 점수 | 결과물 | 점수표 | 병렬 ← |
+| 2-B  | app-tester  | 스펙 대비 검증 | 코드 경로 | PASS/FAIL | 병렬 ← |
+| 2-C  | browser-automation | UI 렌더링 확인 | GitHub Pages URL | QA 보고서 | 병렬 ← |
 
 갭 스킬: 없음
-
-수정 사항이 있으면 말씀해 주세요. 없으면 실행을 시작하겠습니다.
+→ 즉시 실행을 시작합니다.
 ```
