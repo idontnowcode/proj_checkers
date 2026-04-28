@@ -1,11 +1,80 @@
 ---
 name: skill-creator
-description: Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy.
+description: Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy. Trigger proactively when: (1) user says "새 스킬 만들어줘", "스킬 생성해줘", "스킬 추가해줘", "스킬 개선해줘", "갭 스킬 만들어줘"; (2) task-orchestrator detects a gap skill that does not exist in any of the 7 layers; (3) an existing skill scores below 70pt in eval-rubric evaluation; (4) user asks to "fix", "improve", or "rewrite" a skill file. Do NOT use for: general code generation unrelated to skill files, running app-tester or eval-rubric directly (those are separate skills), or creating PDCA plan/design documents.
 ---
 
 # Skill Creator
 
 A skill for creating new skills and iteratively improving them.
+
+---
+
+## ⚡ proj_checkers 프로젝트 합격 기준 (Project-Local Extension)
+
+이 프로젝트에서 스킬은 아래 기준을 충족해야 `.claude/skills/`에 정식 등록된다.
+
+| 항목 | 기준 |
+|------|------|
+| **합격 점수** | eval-rubric 총점 **95점 이상** |
+| **등록 위치** | `.claude/skills/<skill-name>.md` |
+| **반복 한도** | 최대 3회 자동 재작업. 3회 후에도 95점 미달 시 사용자에게 보고 |
+| **스킬명 충돌** | 기존 레이어(bkit Core, superpowers 등)에 동명 스킬 존재 시 프로젝트 우선순위 1위 적용 여부를 사용자에게 확인 |
+
+### 스킬 완성 보고서 형식 (Skill Completion Report)
+
+스킬 완성 후 반드시 아래 형식으로 보고서를 출력한다.
+
+```
+## 스킬 완성 보고서
+
+| 항목 | 내용 |
+|------|------|
+| 스킬명 | (name) |
+| 등록 경로 | .claude/skills/(name).md |
+| eval-rubric 최종 점수 | N점 / 100점 |
+| 반복 횟수 | N회 |
+| 합격 여부 | ✅ 합격 / ❌ 미달 |
+
+### 평가 항목별 점수
+
+| 항목 | 점수 | 비고 |
+|------|------|------|
+| YAML description (25점) | N점 | |
+| 자기 명확화 (15점) | N점 | |
+| 출력 형식 (25점) | N점 | |
+| 정량 기준 (15점) | N점 | |
+| 엣지 케이스 (20점) | N점 | |
+
+### 주요 개선 이력
+- 1차: (변경 내용)
+- 2차: (변경 내용, 있을 경우)
+```
+
+### 입력 명확화 절차 (Self-Clarification — Project-Local)
+
+사용자 입력이 아래 조건에 해당하면 **즉시 명확화 질문을 먼저** 출력하고 대기한다. 본 작업 실행은 명확화 완료 후에만 시작한다.
+
+| 조건 | 명확화 질문 |
+|------|-------------|
+| 스킬 이름 없이 "스킬 만들어줘"만 입력 | "어떤 스킬을 만들까요? 스킬의 목적과 이름을 알려주세요." |
+| 개선 대상 파일 경로 없이 "스킬 개선해줘" | "어떤 스킬을 개선할까요? 파일 경로 또는 스킬 이름을 알려주세요." |
+| task-orchestrator가 갭 스킬 자동 의뢰 시 | 자동 의뢰이므로 명확화 생략 — 의뢰 내용 그대로 사용 |
+| 스킬 목적만 있고 출력 형식 미정 | "결과물 형식은 어떻게 할까요? (마크다운 파일 / 코드 블록 / 테이블 등)" |
+
+### 엣지 케이스 처리 (Project-Local)
+
+| 상황 | 처리 방식 |
+|------|-----------|
+| eval-rubric 타임아웃 (60초+) | 현재까지의 부분 점수로 판정, 사용자에게 타임아웃 알림 후 재시도 여부 확인 |
+| 3회 반복 후에도 95점 미달 | 현재 점수와 미달 항목을 보고, 방향 재설정 or 현재 점수로 임시 등록 여부 사용자 확인 |
+| 동명 스킬 충돌 | 기존 스킬 점수와 신규 스킬 점수를 나란히 표시 후 오버라이드 여부 사용자 확인 |
+| 빈 테스트셋 | 스킬 설명에서 2~3개 테스트 프롬프트 자동 생성 후 사용자 확인 요청 |
+| 스킬 파일 권한 오류 | `.claude/skills/`에 쓰기 권한 확인, 없을 시 임시 경로 저장 후 이동 절차 안내 |
+| eval-viewer 실행 실패 (포트 충돌·Python 오류) | `--static` 옵션으로 정적 HTML 파일 생성 후 경로 안내 |
+| 사용자가 작업 중 취소 요청 | 현재 iteration 결과를 임시 저장 후 취소 확인, 저장된 초안 경로 안내 |
+| 네트워크 오류 (subagent spawn 실패) | Solo Mode 폴백으로 순차 실행 전환, 완료 후 동일 평가 절차 적용 |
+
+---
 
 At a high level, the process of creating a skill goes like this:
 
