@@ -51,14 +51,14 @@ task-orchestrator는 아래 7개 레이어 전체를 스캔한다.
 
 | 우선순위 | 레이어 | 위치 | 스킬 수 |
 |:--------:|--------|------|:-------:|
-| 1 (최우선) | Project-Local | `.claude/skills/` | 9 |
+| 1 (최우선) | Project-Local | `.claude/skills/` | 10 |
 | 2 | bkit Core v1.6.1 | `~/.claude/plugins/cache/bkit-marketplace/` | 31 |
 | 3 | superpowers v5.0.6 | `~/.claude/plugins/cache/superpowers-dev/` | 14 |
 | 4 | Anthropic 공식 | `anthropic-skills:*` | 10 |
 | 5 | Design | `design:*` | 7 |
 | 6 | team-attention-plugins | `clarify:*`, `youtube-digest:*` | 4 |
 | 7 | CC 내장 | CC Built-in | 10 |
-| | **합계** | | **85** |
+| | **합계** | | **86** |
 
 현재 레이어 충돌: `skill-creator` — Project-Local이 `anthropic-skills:skill-creator` 오버라이드 (의도된 동작).
 
@@ -71,7 +71,7 @@ task-orchestrator는 아래 7개 레이어 전체를 스캔한다.
         ↓
   task-orchestrator 자동 발동
         ↓
-  85개 스킬 전체 스캔 → 적합 스킬 선정
+  86개 스킬 전체 스캔 → 적합 스킬 선정
         ↓
   갭 스킬 있음?
    YES ↓           NO ↓
@@ -95,23 +95,18 @@ task-orchestrator는 아래 7개 레이어 전체를 스캔한다.
 proj_checkers/
 ├── CLAUDE.md                   # 이 파일 — AI 동작 원칙 및 프로젝트 규칙
 ├── AGENTS.md                   # 에이전트 실행 가이드라인
-├── news-dashboard/             # 데모 앱 (뉴스 카드뉴스 자동화)
-│   ├── index.html
-│   ├── app.js
-│   ├── saved.html
-│   ├── saved.js
-│   └── style.css
 └── .claude/
     └── skills/                 # Project-Local 스킬 (레이어 우선순위 1위)
-        ├── task-orchestrator.md  # 스킬 자율 조율·실행 팀장
-        ├── eval-rubric.md        # AI 결과물 정량 평가
-        ├── prompt-clarify.md     # 프롬프트 명확화
-        ├── skill-creator.md      # 스킬 생성·개선 (Anthropic 공식, 로컬 오버라이드)
-        ├── app-tester.md         # 스펙 대비 구현 검증
-        ├── test-planner.md       # 테스트 케이스 생성
-        ├── rss-fetcher.md        # RSS/Atom 파싱 + 중복 제거
-        ├── gemini-client.md      # Gemini API 브라우저 통합
-        └── web-dev.md            # 정적 웹앱 개발
+        ├── task-orchestrator.md    # 스킬 자율 조율·실행 팀장
+        ├── eval-rubric.md          # AI 결과물 정량 평가
+        ├── prompt-clarify.md       # 프롬프트 명확화
+        ├── skill-creator.md        # 스킬 생성·개선 (Anthropic 공식, 로컬 오버라이드)
+        ├── app-tester.md           # 스펙 대비 구현 검증
+        ├── test-planner.md         # 테스트 케이스 생성
+        ├── rss-fetcher.md          # RSS/Atom 파싱 + 5단계 CORS 프록시 폴백
+        ├── gemini-client.md        # Gemini API 브라우저 통합 (모델 폴백·429 재시도)
+        ├── web-dev.md              # 정적 웹앱 개발
+        └── browser-automation.md   # Claude in Chrome 기반 실제 브라우저 QA
 ```
 
 ---
@@ -175,6 +170,14 @@ proj_checkers/
 ### `web-dev` — 웹앱 개발
 
 정적 웹 애플리케이션 개발 가이드. 바닐라 JS 기반.
+
+### `browser-automation` — 실제 브라우저 QA ★ 신규
+
+Claude in Chrome MCP 플러그인을 사용해 실제 브라우저에서 웹앱을 자동으로 열고 검증한다.
+
+- `app-tester`(정적 코드 분석)와 역할 분리 — 이 스킬은 런타임 동작 확인 전담
+- 페이지 렌더링·콘솔 오류·네트워크 요청·UI 인터랙션·반응형 레이아웃 검증
+- Claude in Chrome 플러그인 연결 필요 (`list_connected_browsers`로 사전 확인)
 
 ---
 
