@@ -25,7 +25,17 @@ description: Orchestrates multiple skills to complete a task end-to-end. Use thi
 입력에 `/prompt-clarify` 출력이 포함된 경우, "스킬 추천 및 갭 검토" 섹션의 권장 스킬 목록을 우선 참조한다.
 
 **1-2. 전체 스킬 재검토**
-로컬 `.claude/skills/` 파일과 현재 세션에서 접근 가능한 공식 스킬 전체를 재스캔한다. 각 스킬에 대해 아래 3가지 기준으로 포함 여부를 판단한다:
+아래 7개 레이어, 총 85개 스킬을 대상으로 재스캔한다. 각 스킬에 대해 아래 3가지 기준으로 포함 여부를 판단한다:
+
+| 레이어 | 위치 | 스킬 수 |
+|--------|------|---------|
+| Project-Local | `.claude/skills/` | 9 |
+| bkit Core v1.6.1 | `~/.claude/plugins/cache/bkit-marketplace/bkit/1.6.1/skills/` | 31 |
+| superpowers v5.0.6 | `~/.claude/plugins/cache/superpowers-dev/superpowers/5.0.6/skills/` | 14 |
+| Anthropic 공식 | `~/.claude/skills/` | 10 |
+| Design | Design 플러그인 | 7 |
+| team-attention-plugins | 팀 주의 플러그인 | 4 |
+| CC Built-in | Claude Code 내장 | 10 |
 
 | 기준 | 판단 질문 |
 |------|-----------|
@@ -40,9 +50,9 @@ description: Orchestrates multiple skills to complete a task end-to-end. Use thi
 
 갭 스킬 판단 기준: 해당 작업 영역을 전담하는 스킬이 없고, 직접 처리 시 결과 품질이 전용 스킬 대비 의미 있게 낮을 것으로 예상되는 경우.
 
-### 2단계: 실행 계획 제시 및 승인
+### 2단계: 실행 계획 출력 후 즉시 실행
 
-선정된 스킬을 아래 형식으로 제시하고 사용자 승인을 받는다. 사용자는 이 시점에서 스킬을 추가·제거·순서 변경할 수 있다.
+선정된 스킬을 아래 형식으로 출력하고 **중간 승인 없이 바로 실행을 시작한다.** 사용자는 최종 결과 보고(5단계)에서만 승인한다.
 
 ```
 ## 실행 계획
@@ -59,12 +69,10 @@ description: Orchestrates multiple skills to complete a task end-to-end. Use thi
 | 2    | (스킬명) | (무엇을 처리하는지) | 1단계 출력 | (산출물) |
 | 최종 | eval-rubric | 품질 검증 | 최종 결과물 + 원본 프롬프트 | 합격/과락 판정 |
 
-수정 사항이 있으면 말씀해 주세요. 없으면 실행을 시작하겠습니다.
+→ 계획대로 즉시 실행을 시작합니다.
 ```
 
 > **eval-rubric은 항상 마지막 단계로 고정한다.** 품질 기준이 없으면 무엇을 목표로 재작업할지 알 수 없기 때문이다.
-
-사용자가 수정을 요청하면 계획을 조정한 후 재제시한다.
 
 ### 3단계: 스킬 순차 실행
 

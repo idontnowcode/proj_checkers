@@ -94,9 +94,13 @@ description: Analyzes and improves AI prompts through iterative questioning. Use
 
 ### 권장 스킬
 > 스킬 추천 절차:
-> 1. 로컬 `.claude/skills/` 디렉토리의 파일 목록을 확인한다
-> 2. 현재 세션에서 사용 가능한 공식 스킬 목록을 확인한다
-> 3. 각 스킬에 대해 아래 두 기준 중 하나 이상을 만족하면 권장으로 분류한다:
+> 1. 아래 7개 레이어, 총 85개 스킬을 대상으로 스캔한다:
+>    - Project-Local (`.claude/skills/`, 9개)
+>    - bkit Core v1.6.1 (`~/.claude/plugins/cache/bkit-marketplace/bkit/1.6.1/skills/`, 31개)
+>    - superpowers v5.0.6 (`~/.claude/plugins/cache/superpowers-dev/superpowers/5.0.6/skills/`, 14개)
+>    - Anthropic 공식 (`~/.claude/skills/`, 10개)
+>    - Design 플러그인 (7개), team-attention-plugins (4개), CC Built-in (10개)
+> 2. 각 스킬에 대해 아래 두 기준 중 하나 이상을 만족하면 권장으로 분류한다:
 >    - 프롬프트의 작업 유형과 스킬의 목적이 연관되는 경우
 >    - 이 스킬의 결과물이 다음 단계로 자연스럽게 이어지는 경우
 >      (예: 명확화 완료 → eval-rubric으로 평가 기준 생성)
