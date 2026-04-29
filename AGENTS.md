@@ -20,7 +20,7 @@ Claude Code는 `CLAUDE.md`도 함께 읽는다. Codex는 이 파일이 유일한
 | **Codex** | **스킬 파일을 직접 읽고 지시를 따른다** → `Read(".claude/skills/<name>.md")` |
 | 기타 AI | 동일하게 파일을 직접 읽는다 |
 
-### 사용 가능한 스킬 목록 (13개)
+### 사용 가능한 스킬 목록 (16개)
 
 | 스킬명 | 파일 | 역할 |
 |--------|------|------|
@@ -37,6 +37,9 @@ Claude Code는 `CLAUDE.md`도 함께 읽는다. Codex는 이 파일이 유일한
 | `dispatching-parallel-agents` | `.claude/skills/dispatching-parallel-agents.md` | 병렬 에이전트 실행 |
 | `systematic-debugging` | `.claude/skills/systematic-debugging.md` | 체계적 디버깅 |
 | `code-review` | `.claude/skills/code-review.md` | 코드 품질 리뷰 |
+| `verification-before-completion` | `.claude/skills/verification-before-completion.md` | 완료 전 검증 철칙 |
+| `writing-plans` | `.claude/skills/writing-plans.md` | 구현 계획서 작성 |
+| `test-driven-development` | `.claude/skills/test-driven-development.md` | TDD Red-Green-Refactor |
 
 > ⚠️ `browser-automation`: Claude in Chrome MCP 플러그인 필요. **Codex에서는 이 스킬을 건너뛰고 `eval-rubric` 정적 검증으로 대체한다.**
 
