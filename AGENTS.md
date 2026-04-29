@@ -1,5 +1,8 @@
 # AGENTS.md — proj_checkers 에이전트 실행 규칙
 
+> **⚡ 세션 시작 시 가장 먼저 읽을 것**: [`PROJECT_LOG.md`](./PROJECT_LOG.md) — 현재 상태·최근 작업·누적 학습 기록
+> **작업 완료 후**: PROJECT_LOG.md의 "현재 상태 스냅샷"과 "최근 작업 로그"를 업데이트할 것. 로그 10개 초과 시 로테이션 규칙 실행.
+
 이 파일은 **Claude Code, Codex 등 모든 AI 에이전트**가 이 저장소에서 작업할 때 따르는 규칙이다.
 Claude Code는 `CLAUDE.md`도 함께 읽는다. Codex는 이 파일이 유일한 진입점이다.
 
