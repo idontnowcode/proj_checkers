@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ORBIT</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #020810;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    canvas {
+      display: block;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ─────────────────────────────────────
+//  ORBIT  — tap to reverse orbit, avoid asteroids
+// ─────────────────────────────────────
+
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+// ── Responsive canvas ──
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', () => { resize(); resetLayout(); initStars(); });
+
+// ── State machine ──
+const S = { IDLE: 0, PLAYING: 1, DEAD: 2 };
+let state = S.IDLE;
+
+// ── Planet ──
+const planet = { x: 0, y: 0, r: 28 };
+
+// ── Player ──
+const player = {
+  angle:       -Math.PI / 2,  // start at top
+  orbitR:      110,
+  speed:        0.032,         // radians / frame (signed)
+  r:            8,
+  trail:        [],
+  get x() { return planet.x + Math.cos(this.angle) * this.orbitR; },
+  get y() { return planet.y + Math.sin(this.angle) * this.orbitR; },
+};
+
+// ── Game objects ──
+let asteroids  = [];
+let particles  = [];
+let stars      = [];
+let shakeFrames = 0;
+
+// ── Score ──
+let score     = 0;
+let highScore = parseInt(localStorage.getItem('orbit_hs') || '0');
+let frame     = 0;
+let lastSpawn = 0;
+
+// ────────────────────────────────────────────
+//  INIT
+// ────────────────────────────────────────────
+function resetLayout() {
+  planet.x = canvas.width  / 2;
+  planet.y = canvas.height / 2;
+}
+resetLayout();
+
+function initStars() {
+  stars = [];
+  for (let i = 0; i < 120; i++) {
+    stars.push({
+      x:     Math.random() * canvas.width,
+      y:     Math.random() * canvas.height,
+      r:     Math.random() * 1.4 + 0.2,
+      alpha: Math.random() * 0.6 + 0.2,
+      twinkleSpeed: Math.random() * 0.02 + 0.005,
+      twinkleOffset: Math.random() * Math.PI * 2,
+    });
+  }
+}
+initStars();
+
+// ────────────────────────────────────────────
+//  GAME START / RESET
+// ────────────────────────────────────────────
+function startGame() {
+  state         = S.PLAYING;
+  frame         = 0;
+  lastSpawn     = 0;
+  score         = 0;
+  asteroids     = [];
+  particles     = [];
+  player.angle  = -Math.PI / 2;
+  player.speed  = 0.032;
+  player.trail  = [];
+  resetLayout();
+}
+
+// ────────────────────────────────────────────
+//  INPUT
+// ────────────────────────────────────────────
+function onTap() {
+  if (state === S.IDLE || state === S.DEAD) {
+    startGame();
+  } else if (state === S.PLAYING) {
+    player.speed *= -1;
+    // visual feedback: brief trail burst
+    for (let i = 0; i < 4; i++) {
+      spawnParticle(player.x, player.y, '#00ffcc', 1.5 + Math.random() * 2, 0.04);
+    }
+  }
+}
+
+canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); onTap(); });
+document.addEventListener('keydown',   (e) => { if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); onTap(); } });
+
+// ────────────────────────────────────────────
+//  PARTICLES
+// ────────────────────────────────────────────
+function spawnParticle(x, y, color, speed, decay, angle) {
+  const a = angle !== undefined ? angle : Math.random() * Math.PI * 2;
+  particles.push({
+    x, y,
+    vx:    Math.cos(a) * speed,
+    vy:    Math.sin(a) * speed,
+    life:  1.0,
+    decay: decay || 0.02,
+    r:     1.5 + Math.random() * 2.5,
+    color,
+  });
+}
+
+function explodeAt(x, y) {
+  const colors = ['#ff4444', '#ff8844', '#ffcc44', '#ff6060'];
+  for (let i = 0; i < 28; i++) {
+    const angle = (i / 28) * Math.PI * 2 + Math.random() * 0.4;
+    const spd   = 2 + Math.random() * 5;
+    spawnParticle(x, y, colors[i % colors.length], spd, 0.018, angle);
+  }
+}
+
+// ────────────────────────────────────────────
+//  ASTEROIDS
+// ────────────────────────────────────────────
+function spawnAsteroid() {
+  // spawn off-screen from a random edge
+  const edge = Math.floor(Math.random() * 4);
+  let sx, sy;
+  const pad = 30;
+  if      (edge === 0) { sx = Math.random() * canvas.width;  sy = -pad; }
+  else if (edge === 1) { sx = canvas.width  + pad; sy = Math.random() * canvas.height; }
+  else if (edge === 2) { sx = Math.random() * canvas.width;  sy = canvas.height + pad; }
+  else                 { sx = -pad; sy = Math.random() * canvas.height; }
+
+  const dx  = planet.x - sx;
+  const dy  = planet.y - sy;
+  const dst = Math.hypot(dx, dy);
+  const spd = 1.5 + score * 0.012 + Math.random() * 1.0;
+  // slight angle spread so not all aimed perfectly at center
+  const ang = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.35;
+
+  // build a random jagged shape as offsets
+  const pts = 7 + Math.floor(Math.random() * 3);
+  const r   = 7 + Math.random() * 9;
+  const shape = [];
+  for (let i = 0; i < pts; i++) {
+    const a  = (i / pts) * Math.PI * 2;
+    const rr = r * (0.65 + Math.random() * 0.5);
+    shape.push({ a, r: rr });
+  }
+
+  asteroids.push({
+    x: sx, y: sy,
+    vx: Math.cos(ang) * spd,
+    vy: Math.sin(ang) * spd,
+    r,
+    rot:      Math.random() * Math.PI * 2,
+    rotSpeed: (Math.random() - 0.5) * 0.04,
+    shape,
+    alpha: 1,
+  });
+}
+
+// ────────────────────────────────────────────
+//  UPDATE
+// ────────────────────────────────────────────
+function update() {
+  if (state !== S.PLAYING) return;
+
+  frame++;
+  score = Math.floor(frame / 60);
+
+  // speed ramp: gradually increase orbit speed (cap at 3×)
+  const speedAbs = Math.min(Math.abs(player.speed) * (1 + score * 0.003), 0.096);
+  player.speed   = Math.sign(player.speed) * speedAbs;
+
+  // move player
+  player.angle += player.speed;
+
+  // update trail
+  player.trail.push({ x: player.x, y: player.y });
+  if (player.trail.length > 18) player.trail.shift();
+
+  // spawn asteroids (interval shrinks with score, min 18 frames)
+  const interval = Math.max(18, 75 - score * 0.6);
+  if (frame - lastSpawn >= interval) {
+    spawnAsteroid();
+    lastSpawn = frame;
+  }
+
+  // update asteroids
+  for (let i = asteroids.length - 1; i >= 0; i--) {
+    const a = asteroids[i];
+    a.x   += a.vx;
+    a.y   += a.vy;
+    a.rot += a.rotSpeed;
+
+    // off-screen cull
+    if (a.x < -60 || a.x > canvas.width + 60 ||
+        a.y < -60 || a.y > canvas.height + 60) {
+      asteroids.splice(i, 1);
+      continue;
+    }
+
+    // collision: player vs asteroid
+    const dx  = player.x - a.x;
+    const dy  = player.y - a.y;
+    const dst = Math.hypot(dx, dy);
+    if (dst < player.r + a.r - 3) {
+      explodeAt(player.x, player.y);
+      shakeFrames = 20;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('orbit_hs', highScore);
+      }
+      state = S.DEAD;
+      return;
+    }
+  }
+
+  // update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x    += p.vx;
+    p.y    += p.vy;
+    p.vx   *= 0.94;
+    p.vy   *= 0.94;
+    p.life -= p.decay;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  if (shakeFrames > 0) shakeFrames--;
+}
+
+// ────────────────────────────────────────────
+//  DRAW HELPERS
+// ────────────────────────────────────────────
+function glowCircle(x, y, r, color, alpha = 0.4) {
+  const grd = ctx.createRadialGradient(x, y, 0, x, y, r);
+  grd.addColorStop(0, color.replace(')', `, ${alpha})`).replace('rgb', 'rgba'));
+  grd.addColorStop(1, color.replace(')', ', 0)').replace('rgb', 'rgba'));
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawStars(t) {
+  stars.forEach(s => {
+    const tw = Math.sin(t * s.twinkleSpeed * 60 + s.twinkleOffset) * 0.25 + 0.75;
+    ctx.globalAlpha = s.alpha * tw;
+    ctx.fillStyle   = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawPlanet() {
+  // outer glow
+  const grd = ctx.createRadialGradient(planet.x, planet.y, planet.r * 0.4, planet.x, planet.y, planet.r * 3);
+  grd.addColorStop(0, 'rgba(60, 160, 255, 0.22)');
+  grd.addColorStop(1, 'rgba(60, 160, 255, 0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(planet.x, planet.y, planet.r * 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // planet surface
+  const g2 = ctx.createRadialGradient(planet.x - 8, planet.y - 8, 3, planet.x, planet.y, planet.r);
+  g2.addColorStop(0,   '#90d8ff');
+  g2.addColorStop(0.4, '#3878ff');
+  g2.addColorStop(1,   '#0c1880');
+  ctx.fillStyle = g2;
+  ctx.beginPath();
+  ctx.arc(planet.x, planet.y, planet.r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // orbit ring (dashed)
+  ctx.save();
+  ctx.setLineDash([6, 12]);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.arc(planet.x, planet.y, player.orbitR, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPlayer() {
+  // trail
+  player.trail.forEach((t, i) => {
+    const a = (i / player.trail.length);
+    ctx.globalAlpha = a * 0.55;
+    ctx.fillStyle   = player.speed > 0 ? '#00ffcc' : '#ff88ff';
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, player.r * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  // glow halo
+  const color = player.speed > 0 ? '0, 255, 200' : '200, 100, 255';
+  const grd = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, player.r * 3);
+  grd.addColorStop(0, `rgba(${color}, 0.5)`);
+  grd.addColorStop(1, `rgba(${color}, 0)`);
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.r * 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // body
+  ctx.fillStyle = player.speed > 0 ? '#00ffcc' : '#dd88ff';
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawAsteroid(a) {
+  ctx.save();
+  ctx.translate(a.x, a.y);
+  ctx.rotate(a.rot);
+
+  // glow
+  const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, a.r * 2);
+  grd.addColorStop(0, 'rgba(255, 100, 40, 0.28)');
+  grd.addColorStop(1, 'rgba(255, 100, 40, 0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(0, 0, a.r * 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // body (jagged polygon)
+  ctx.beginPath();
+  a.shape.forEach((pt, i) => {
+    const x = Math.cos(pt.a) * pt.r;
+    const y = Math.sin(pt.a) * pt.r;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fillStyle   = '#7a3018';
+  ctx.strokeStyle = '#ff6030';
+  ctx.lineWidth   = 1.5;
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle   = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// direction arrow around orbit ring
+function drawDirectionArrow() {
+  const arrowAngle = player.angle + Math.sign(player.speed) * Math.PI * 0.55;
+  const ax = planet.x + Math.cos(arrowAngle) * player.orbitR;
+  const ay = planet.y + Math.sin(arrowAngle) * player.orbitR;
+  const headAngle = arrowAngle + (player.speed > 0 ? Math.PI / 2 : -Math.PI / 2);
+  const len = 9;
+
+  ctx.save();
+  ctx.globalAlpha = 0.28;
+  ctx.strokeStyle = player.speed > 0 ? '#00ffcc' : '#dd88ff';
+  ctx.fillStyle   = player.speed > 0 ? '#00ffcc' : '#dd88ff';
+  ctx.lineWidth   = 2;
+  ctx.translate(ax, ay);
+  ctx.rotate(headAngle);
+  ctx.beginPath();
+  ctx.moveTo(0, -len);
+  ctx.lineTo(-5, 0);
+  ctx.lineTo(5,  0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// ────────────────────────────────────────────
+//  HUD / SCREENS
+// ────────────────────────────────────────────
+function drawHUD(t) {
+  ctx.textAlign    = 'left';
+  ctx.textBaseline = 'top';
+
+  if (state === S.PLAYING) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.font      = 'bold 22px "Courier New", monospace';
+    ctx.fillText(`${score}`, 22, 22);
+
+    if (highScore > 0) {
+      ctx.fillStyle = 'rgba(255, 200, 80, 0.45)';
+      ctx.font      = '16px "Courier New", monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(`BEST  ${highScore}`, canvas.width - 20, 26);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  if (state === S.IDLE) {
+    // overlay
+    ctx.fillStyle = 'rgba(2, 8, 16, 0.55)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    const cy = canvas.height / 2;
+
+    // title
+    ctx.font      = `bold ${Math.min(80, canvas.width * 0.18)}px "Courier New", monospace`;
+    ctx.fillStyle = '#00ffcc';
+    ctx.shadowColor = '#00ffcc';
+    ctx.shadowBlur  = 24;
+    ctx.fillText('ORBIT', canvas.width / 2, cy - 55);
+    ctx.shadowBlur = 0;
+
+    // instructions
+    ctx.font      = `${Math.min(18, canvas.width * 0.042)}px "Courier New", monospace`;
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillText('Tap to reverse orbit direction', canvas.width / 2, cy + 10);
+    ctx.fillText('Avoid the asteroids', canvas.width / 2, cy + 38);
+
+    // tap prompt (pulsing)
+    const pulse = Math.sin(t * 0.003) * 0.35 + 0.65;
+    ctx.globalAlpha = pulse;
+    ctx.font        = `bold ${Math.min(20, canvas.width * 0.046)}px "Courier New", monospace`;
+    ctx.fillStyle   = '#ffffff';
+    ctx.fillText('— TAP ANYWHERE TO START —', canvas.width / 2, cy + 90);
+    ctx.globalAlpha = 1;
+
+    if (highScore > 0) {
+      ctx.font      = `16px "Courier New", monospace`;
+      ctx.fillStyle = 'rgba(255, 200, 80, 0.6)';
+      ctx.fillText(`BEST: ${highScore}`, canvas.width / 2, cy + 128);
+    }
+  }
+
+  if (state === S.DEAD) {
+    ctx.fillStyle = 'rgba(2, 8, 16, 0.6)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    const cy = canvas.height / 2;
+
+    ctx.font        = `bold ${Math.min(56, canvas.width * 0.13)}px "Courier New", monospace`;
+    ctx.fillStyle   = '#ff4444';
+    ctx.shadowColor = '#ff2020';
+    ctx.shadowBlur  = 18;
+    ctx.fillText('DESTROYED', canvas.width / 2, cy - 52);
+    ctx.shadowBlur  = 0;
+
+    ctx.font      = `bold ${Math.min(32, canvas.width * 0.075)}px "Courier New", monospace`;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(`${score}`, canvas.width / 2, cy + 8);
+
+    ctx.font      = `${Math.min(16, canvas.width * 0.037)}px "Courier New", monospace`;
+    ctx.fillStyle = 'rgba(200,200,200,0.5)';
+    ctx.fillText('SECONDS SURVIVED', canvas.width / 2, cy + 38);
+
+    if (score >= highScore && score > 0) {
+      ctx.font        = `bold ${Math.min(22, canvas.width * 0.05)}px "Courier New", monospace`;
+      ctx.fillStyle   = '#ffd700';
+      ctx.shadowColor = '#ffaa00';
+      ctx.shadowBlur  = 14;
+      ctx.fillText('NEW RECORD', canvas.width / 2, cy + 72);
+      ctx.shadowBlur  = 0;
+    } else if (highScore > 0) {
+      ctx.font      = `${Math.min(16, canvas.width * 0.037)}px "Courier New", monospace`;
+      ctx.fillStyle = 'rgba(255, 200, 80, 0.55)';
+      ctx.fillText(`BEST: ${highScore}`, canvas.width / 2, cy + 72);
+    }
+
+    const pulse = Math.sin(t * 0.003) * 0.35 + 0.65;
+    ctx.globalAlpha = pulse;
+    ctx.font        = `bold ${Math.min(18, canvas.width * 0.042)}px "Courier New", monospace`;
+    ctx.fillStyle   = '#ffffff';
+    ctx.fillText('— TAP TO RETRY —', canvas.width / 2, cy + 116);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ────────────────────────────────────────────
+//  GAME LOOP
+// ────────────────────────────────────────────
+function loop(t) {
+  update();
+
+  // screen shake
+  ctx.save();
+  if (shakeFrames > 0) {
+    const s = shakeFrames * 0.6;
+    ctx.translate((Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
+  }
+
+  // background
+  ctx.fillStyle = '#020810';
+  ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+
+  drawStars(t);
+  drawPlanet();
+
+  if (state !== S.IDLE) {
+    drawParticles();
+    asteroids.forEach(drawAsteroid);
+    if (state === S.PLAYING) {
+      drawDirectionArrow();
+      drawPlayer();
+    }
+  } else {
+    // idle: show player silently orbiting
+    drawDirectionArrow();
+    drawPlayer();
+  }
+
+  ctx.restore();
+
+  drawHUD(t);
+
+  requestAnimationFrame(loop);
+}
+
+// idle animation: player keeps orbiting on title screen
+(function idleOrbit() {
+  function tick() {
+    if (state === S.IDLE) {
+      player.angle += player.speed;
+      player.trail.push({ x: player.x, y: player.y });
+      if (player.trail.length > 18) player.trail.shift();
+    }
+    requestAnimationFrame(tick);
+  }
+  tick();
+})();
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
