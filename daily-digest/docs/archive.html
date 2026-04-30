@@ -112,15 +112,19 @@ function renderArticles() {
   const topicKeys = Object.keys(archiveData.topics);
   const tabsInner = document.querySelector('#tabBar .tabs-inner');
   tabsInner.innerHTML = topicKeys.map(k =>
-    `<button class="tab ${k === activeTopicKey ? 'active' : ''}" onclick="switchTab(event,'${k}')">${getLabel(k)}</button>`
+    `<button class="tab ${k === activeTopicKey ? 'active' : ''}" data-key="${escHtml(k)}">${escHtml(getLabel(k))}</button>`
   ).join('');
+  tabsInner.onclick = null;
+  tabsInner.addEventListener('click', e => {
+    const btn = e.target.closest('.tab');
+    if (btn) switchTab(btn.dataset.key);
+  });
   renderCards(activeTopicKey);
 }
 
-function switchTab(e, key) {
+function switchTab(key) {
   activeTopicKey = key;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  e.currentTarget.classList.add('active');
+  document.querySelectorAll('#tabBar .tab').forEach(t => t.classList.toggle('active', t.dataset.key === key));
   renderCards(key);
 }
 

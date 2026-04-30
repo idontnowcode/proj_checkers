@@ -46,7 +46,8 @@ async function fetchWithFallback(url) {
 
 function decodeHtmlEntities(s) {
   return (s ?? '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&quot;/g, '"').replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
     .replace(/&apos;/g, "'").replace(/&nbsp;/g, ' ');
 }
 
@@ -171,7 +172,11 @@ async function summarizeArticle(title, description) {
       }
       const data = await res.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      return {
+        summary: parsed.summary ?? '',
+        keyPoint: parsed.keyPoint ?? '',
+      };
     } catch (e) {
       if (attempt === 2) {
         console.warn(`요약 실패 (${title.slice(0, 30)}): ${e.message}`);
@@ -195,9 +200,10 @@ async function main() {
 
     console.log(`요약 생성 중 (${articles.length}건)...`);
     const summarized = [];
-    for (const article of articles) {
-      const { summary, keyPoint } = await summarizeArticle(article.title, article.description);
-      summarized.push({ ...article, summary, keyPoint });
+    for (let i = 0; i < articles.length; i++) {
+      if (i > 0) await new Promise(r => setTimeout(r, 500));
+      const { summary, keyPoint } = await summarizeArticle(articles[i].title, articles[i].description);
+      summarized.push({ ...articles[i], summary, keyPoint });
       process.stdout.write('.');
     }
     console.log();
