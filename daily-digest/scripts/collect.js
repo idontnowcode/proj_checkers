@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -196,10 +196,24 @@ async function main() {
   writeFileSync(archivePath, JSON.stringify(result, null, 2), 'utf-8');
   console.log(`\n✓ 아카이브 저장: archive/${today}.json`);
 
-  // docs/data/latest.json 갱신
-  mkdirSync(join(ROOT, 'docs', 'data'), { recursive: true });
-  writeFileSync(join(ROOT, 'docs', 'data', 'latest.json'), JSON.stringify(result, null, 2), 'utf-8');
+  // docs/data/latest.json + docs/data/archive/ 갱신
+  const docsData = join(ROOT, 'docs', 'data');
+  mkdirSync(join(docsData, 'archive'), { recursive: true });
+  writeFileSync(join(docsData, 'latest.json'), JSON.stringify(result, null, 2), 'utf-8');
   console.log('✓ docs/data/latest.json 갱신');
+
+  // docs/data/archive/{today}.json 저장
+  writeFileSync(join(docsData, 'archive', `${today}.json`), JSON.stringify(result, null, 2), 'utf-8');
+  console.log(`✓ docs/data/archive/${today}.json 저장`);
+
+  // docs/data/archive-index.json 갱신 (날짜 목록)
+  const indexPath = join(docsData, 'archive-index.json');
+  const existing = existsSync(indexPath)
+    ? JSON.parse(readFileSync(indexPath, 'utf-8'))
+    : [];
+  const dates = [...new Set([today, ...existing])].sort().reverse();
+  writeFileSync(indexPath, JSON.stringify(dates, null, 2), 'utf-8');
+  console.log(`✓ archive-index.json 갱신 (${dates.length}건)`);
 
   console.log('\n=== 수집 완료 ===\n');
 }

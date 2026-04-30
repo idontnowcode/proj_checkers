@@ -4,9 +4,9 @@
     "international": {
       "label": "🌍 국제 정세",
       "feeds": [
-        "https://feeds.reuters.com/reuters/topNews",
         "https://feeds.bbci.co.uk/news/world/rss.xml",
-        "https://www.aljazeera.com/xml/rss/all.xml"
+        "https://www.aljazeera.com/xml/rss/all.xml",
+        "https://feeds.npr.org/1004/rss.xml"
       ],
       "count": 5
     },
@@ -14,8 +14,8 @@
       "label": "🤖 AI 기술",
       "feeds": [
         "https://techcrunch.com/category/artificial-intelligence/feed/",
-        "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",
-        "https://venturebeat.com/category/ai/feed/"
+        "https://venturebeat.com/category/ai/feed/",
+        "https://www.wired.com/feed/tag/artificial-intelligence/latest/rss"
       ],
       "count": 5
     }
