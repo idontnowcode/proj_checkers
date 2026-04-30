@@ -8,7 +8,7 @@ const ROOT = join(__dirname, '..');
 
 const config = JSON.parse(readFileSync(join(ROOT, 'config.json'), 'utf-8'));
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // ── RSS 수집 (rss-fetcher 패턴) ──────────────────────────────────────────────
@@ -151,7 +151,10 @@ async function summarizeArticle(title, description) {
         await new Promise(r => setTimeout(r, 4000 * (attempt + 1)));
         continue;
       }
-      if (!res.ok) throw new Error(`Gemini ${res.status}`);
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '');
+        throw new Error(`Gemini ${res.status}: ${errBody.slice(0, 200)}`);
+      }
       const data = await res.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
       return JSON.parse(text);
