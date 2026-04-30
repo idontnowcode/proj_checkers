@@ -191,11 +191,6 @@ function renderDashboard() {
     const label = getLabel(key);
     return `<button class="tab ${key === activeTopicKey ? 'active' : ''}" data-key="${escHtml(key)}">${escHtml(label)}</button>`;
   }).join('');
-  tabBar.onclick = null;
-  tabBar.addEventListener('click', e => {
-    const btn = e.target.closest('.tab');
-    if (btn) switchTab(btn.dataset.key);
-  });
 
   // 카드 렌더
   renderCards(activeTopicKey);
@@ -339,6 +334,10 @@ function savePat() {
 }
 
 // ── 초기화 ───────────────────────────────────────────────────────────────────
+document.getElementById('tabBar').addEventListener('click', e => {
+  const btn = e.target.closest('.tab');
+  if (btn) switchTab(btn.dataset.key);
+});
 loadData();
 loadWorkflowState();
 </script>

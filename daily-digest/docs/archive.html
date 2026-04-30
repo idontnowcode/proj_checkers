@@ -89,6 +89,7 @@ function renderDateList(dates) {
 }
 
 async function loadDate(date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
   document.querySelectorAll('.date-btn').forEach(b => {
     b.classList.toggle('active', b.textContent === date);
   });
@@ -114,11 +115,6 @@ function renderArticles() {
   tabsInner.innerHTML = topicKeys.map(k =>
     `<button class="tab ${k === activeTopicKey ? 'active' : ''}" data-key="${escHtml(k)}">${escHtml(getLabel(k))}</button>`
   ).join('');
-  tabsInner.onclick = null;
-  tabsInner.addEventListener('click', e => {
-    const btn = e.target.closest('.tab');
-    if (btn) switchTab(btn.dataset.key);
-  });
   renderCards(activeTopicKey);
 }
 
@@ -163,6 +159,10 @@ function safeUrl(url) {
 document.getElementById('dateList').addEventListener('click', e => {
   const btn = e.target.closest('.date-btn');
   if (btn) loadDate(btn.dataset.date);
+});
+document.querySelector('#tabBar .tabs-inner').addEventListener('click', e => {
+  const btn = e.target.closest('.tab');
+  if (btn) switchTab(btn.dataset.key);
 });
 loadIndex();
 </script>

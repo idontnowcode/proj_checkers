@@ -17,7 +17,7 @@ async function fetchWithFallback(url) {
   // GitHub Actions 환경에서는 CORS 없으므로 직접 fetch 우선
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (res.ok) return res.text();
+    if (res.ok) return await res.text();
   } catch { /* 실패 시 프록시로 폴백 */ }
 
   const proxies = [
