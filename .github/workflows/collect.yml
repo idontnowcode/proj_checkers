@@ -1,0 +1,47 @@
+name: Daily Digest
+
+on:
+  schedule:
+    - cron: '0 23 * * *'   # 매일 KST 08:00 (UTC 23:00)
+  workflow_dispatch:        # 대시보드 ON/OFF 토글 및 수동 실행용
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: daily-digest/package-lock.json
+
+      - name: Install dependencies
+        working-directory: daily-digest
+        run: npm ci
+
+      - name: Run collector
+        working-directory: daily-digest
+        run: node scripts/collect.js
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Set today date
+        run: echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      # 아카이브(JSON 기록)는 main 브랜치에 커밋
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "digest: ${{ env.TODAY }}"
+          file_pattern: "daily-digest/archive/**"
+
+      # 대시보드는 gh-pages 브랜치로 배포
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./daily-digest/docs
+          commit_message: "pages: ${{ env.TODAY }}"

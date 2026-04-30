@@ -1,0 +1,23 @@
+{
+  "schedule": "0 23 * * *",
+  "topics": {
+    "international": {
+      "label": "🌍 국제 정세",
+      "feeds": [
+        "https://feeds.reuters.com/reuters/topNews",
+        "https://feeds.bbci.co.uk/news/world/rss.xml",
+        "https://www.aljazeera.com/xml/rss/all.xml"
+      ],
+      "count": 5
+    },
+    "ai": {
+      "label": "🤖 AI 기술",
+      "feeds": [
+        "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",
+        "https://venturebeat.com/category/ai/feed/"
+      ],
+      "count": 5
+    }
+  }
+}

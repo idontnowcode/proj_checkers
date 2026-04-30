@@ -1,0 +1,13 @@
+{
+  "name": "daily-digest",
+  "version": "1.0.0",
+  "description": "자동 뉴스 수집 및 GitHub Pages 대시보드",
+  "type": "module",
+  "main": "scripts/collect.js",
+  "scripts": {
+    "collect": "node scripts/collect.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
