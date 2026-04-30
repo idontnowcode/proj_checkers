@@ -35,7 +35,7 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "digest: ${{ env.TODAY }}"
-          file_pattern: "daily-digest/archive/**"
+          file_pattern: "daily-digest/archive/** daily-digest/docs/data/**"
 
       # 대시보드는 gh-pages 브랜치로 배포
       - uses: peaceiris/actions-gh-pages@v4

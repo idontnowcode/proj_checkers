@@ -84,7 +84,7 @@ async function loadIndex() {
 
 function renderDateList(dates) {
   document.getElementById('dateList').innerHTML = dates.map(d =>
-    `<button class="date-btn" onclick="loadDate('${escHtml(d)}')">${escHtml(d)}</button>`
+    `<button class="date-btn" data-date="${escHtml(d)}">${escHtml(d)}</button>`
   ).join('');
 }
 
@@ -156,6 +156,10 @@ function safeUrl(url) {
   try { const u = new URL(url ?? ''); return (u.protocol==='https:'||u.protocol==='http:') ? escHtml(url) : '#'; } catch { return '#'; }
 }
 
+document.getElementById('dateList').addEventListener('click', e => {
+  const btn = e.target.closest('.date-btn');
+  if (btn) loadDate(btn.dataset.date);
+});
 loadIndex();
 </script>
 </body>

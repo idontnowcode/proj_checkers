@@ -31,13 +31,27 @@ async function fetchWithFallback(url) {
       const res = await fetch(makeUrl(url), { signal: controller.signal });
       clearTimeout(timer);
       if (!res.ok) continue;
-      const data = await res.json();
-      return data.contents ?? data;
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        if (typeof data.contents === 'string') return data.contents;
+      } catch { /* not JSON, return raw text */ }
+      return text;
     } catch {
       clearTimeout(timer);
     }
   }
   throw new Error(`RSS fetch 실패: ${url}`);
+}
+
+function decodeHtmlEntities(s) {
+  return (s ?? '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&apos;/g, "'").replace(/&nbsp;/g, ' ');
+}
+
+function stripHtml(s) {
+  return (s ?? '').replace(/<[^>]+>/g, ' ').replace(/\s{2,}/g, ' ').trim();
 }
 
 function parseRSS(xml) {
@@ -52,8 +66,8 @@ function parseRSS(xml) {
     };
     const linkMatch = block.match(/<link[^>]*href="([^"]+)"/) || block.match(/<link[^>]*>(?:<!\[CDATA\[)?([^<]+)/i);
     items.push({
-      title: get('title').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>'),
-      description: get('description') || get('summary'),
+      title: decodeHtmlEntities(get('title')),
+      description: stripHtml(decodeHtmlEntities(get('description') || get('summary'))),
       link: linkMatch ? linkMatch[1].trim() : '',
       pubDate: get('pubDate') || get('published') || get('updated'),
       source: '',
@@ -208,9 +222,10 @@ async function main() {
 
   // docs/data/archive-index.json 갱신 (날짜 목록)
   const indexPath = join(docsData, 'archive-index.json');
-  const existing = existsSync(indexPath)
-    ? JSON.parse(readFileSync(indexPath, 'utf-8'))
-    : [];
+  let existing = [];
+  if (existsSync(indexPath)) {
+    try { existing = JSON.parse(readFileSync(indexPath, 'utf-8')); } catch { existing = []; }
+  }
   const dates = [...new Set([today, ...existing])].sort().reverse();
   writeFileSync(indexPath, JSON.stringify(dates, null, 2), 'utf-8');
   console.log(`✓ archive-index.json 갱신 (${dates.length}건)`);

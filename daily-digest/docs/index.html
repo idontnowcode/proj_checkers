@@ -189,8 +189,13 @@ function renderDashboard() {
   const tabBar = document.getElementById('tabBar');
   tabBar.innerHTML = topicKeys.map(key => {
     const label = getLabel(key);
-    return `<button class="tab ${key === activeTopicKey ? 'active' : ''}" onclick="switchTab(event,'${key}')">${label}</button>`;
+    return `<button class="tab ${key === activeTopicKey ? 'active' : ''}" data-key="${escHtml(key)}">${escHtml(label)}</button>`;
   }).join('');
+  tabBar.onclick = null;
+  tabBar.addEventListener('click', e => {
+    const btn = e.target.closest('.tab');
+    if (btn) switchTab(btn.dataset.key);
+  });
 
   // 카드 렌더
   renderCards(activeTopicKey);
@@ -201,10 +206,9 @@ function getLabel(key) {
   return map[key] ?? key;
 }
 
-function switchTab(e, key) {
+function switchTab(key) {
   activeTopicKey = key;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  e.currentTarget.classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.key === key));
   renderCards(key);
 }
 
