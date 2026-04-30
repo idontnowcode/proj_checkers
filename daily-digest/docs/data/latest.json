@@ -1,57 +1,99 @@
 {
   "date": "2026-04-30",
-  "generatedAt": "2026-04-30T23:00:00Z",
+  "generatedAt": "2026-04-30T13:41:47.790Z",
   "topics": {
     "international": [
       {
-        "title": "美-中 무역협상 재개, 양측 90일 관세 유예 논의",
-        "summary": "미국과 중국이 제네바에서 고위급 무역 회담을 재개했다. 양측은 상호 관세 일부 유예를 검토 중이며 90일 휴전안이 거론되고 있다. 협상 결과에 따라 글로벌 공급망에 큰 영향이 예상된다.",
-        "keyPoint": "협상 타결 시 반도체·전기차 관련 국내 수출기업에 긍정적 신호",
-        "source": "Reuters",
-        "url": "https://reuters.com",
-        "pubDate": "2026-04-30T06:00:00Z"
+        "title": "Iran war has cost $25B, Pentagon says. And, SCOTUS strikes blow to Voting Rights Act",
+        "description": "The Pentagon estimates the war with Iran has cost $25 billion so far. And, the Supreme Court ruled that Louisiana's 2024 election map was \"an unconstitutional racial gerrymander.\"",
+        "link": "https://www.npr.org/2026/04/30/g-s1-119496/up-first-newsletter-pentagon-iran-war-jerome-powell-scotus-voting-rights-wildfire-fuel-costs",
+        "pubDate": "Thu, 30 Apr 2026 07:38:15 -0400",
+        "source": "npr",
+        "summary": "미 국방부는 이란과의 전쟁 비용이 현재까지 250억 달러에 달한다고 추정했습니다. 한편, 대법원은 루이지애나주의 2024년 선거 지도가 \"위헌적인 인종적 게리맨더링\"이라고 판결하며 투표권법에 타격을 주었습니다.",
+        "keyPoint": "이번 대법원 판결은 선거의 공정성과 소수자 투표권 보호에 중요한 영향을 미칠 것으로 보입니다."
       },
       {
-        "title": "우크라이나 휴전 협상, 유럽 중재안 제시",
-        "summary": "프랑스와 독일이 공동 중재안을 제안했다. 동부 4개 주 현상 유지를 전제로 한 90일 휴전이 핵심이며, 러시아 측 반응은 아직 없다.",
-        "keyPoint": "휴전 협상 진전 여부가 에너지 가격과 유럽 경제 회복에 직결",
-        "source": "BBC",
-        "url": "https://bbc.co.uk",
-        "pubDate": "2026-04-30T05:30:00Z"
+        "title": "Mirroring Gaza, Israel is destroying towns and villages in southern Lebanon",
+        "description": "In southern Lebanon, towns near the border with Israel have been largely destroyed by Israeli demolitions and strikes. Israel says it has been attacking Hezbollah infrastructure, but civilian infrastructure has also been significantly affected.",
+        "link": "https://www.npr.org/2026/04/30/g-s1-119210/lebanon-israel-war",
+        "pubDate": "Thu, 30 Apr 2026 05:00:00 -0400",
+        "source": "npr",
+        "summary": "이스라엘의 공격으로 레바논 남부 국경 인근 마을들이 크게 파괴되었습니다. 이스라엘은 헤즈볼라 기반 시설을 공격했다고 주장하지만, 민간 기반 시설도 심각한 피해를 입었습니다.",
+        "keyPoint": "이번 사태는 이스라엘-하마스 분쟁이 레바논 국경 지역으로 확산되어 민간인 피해가 커지고 있음을 보여줍니다."
       },
       {
-        "title": "인도-파키스탄 국경 긴장 고조, UN 중재 요청",
-        "summary": "카슈미르 분쟁 지역에서 양국 군사적 충돌이 재발했다. UN 안보리는 긴급 회의를 소집했으며 양측에 자제를 촉구했다.",
-        "keyPoint": "남아시아 지역 불안정은 에너지 수급과 인도 IT 서비스 공급망에 영향 가능",
-        "source": "Al Jazeera",
-        "url": "https://aljazeera.com",
-        "pubDate": "2026-04-30T04:15:00Z"
+        "title": "Trump says he spoke with Putin about a possible ceasefire in Ukraine",
+        "description": "President Trump said he talked to Russian President Putin Wednesday about the wars in Ukraine and Iran.",
+        "link": "https://www.npr.org/2026/04/30/nx-s1-5805188/trump-says-he-spoke-with-putin-about-a-possible-ceasefire-in-ukraine",
+        "pubDate": "Thu, 30 Apr 2026 04:43:53 -0400",
+        "source": "npr",
+        "summary": "트럼프 전 대통령이 수요일 푸틴 러시아 대통령과 우크라이나 및 이란 전쟁에 대해 대화했다고 밝혔다. 특히 우크라이나 휴전 가능성에 대해 논의한 것으로 알려졌다.",
+        "keyPoint": "트럼프의 발언은 향후 미국 대선 결과에 따라 우크라이나 전쟁의 외교적 해결 방향에 중대한 변화가 있을 수 있음을 시사한다."
+      },
+      {
+        "title": "Activists say Israel has intercepted their Gaza aid flotilla near Crete",
+        "description": "Activists sailing on dozens of boats attempting to break Israel's blockade of the Gaza Strip to deliver aid say Israeli forces intercepted them, detaining the crews while the flotilla was sailing near the Greek island of Crete.",
+        "link": "https://www.npr.org/2026/04/30/g-s1-119486/israel-intercept-gaza-aid-flotilla",
+        "pubDate": "Thu, 30 Apr 2026 03:59:37 -0400",
+        "source": "npr",
+        "summary": "이스라엘의 가자지구 봉쇄를 뚫고 구호품을 전달하려던 활동가들의 선단이 그리스 크레타섬 근처에서 이스라엘군에 의해 저지당했다. 활동가들은 이스라엘군이 선원들을 억류했다고 밝혔다.",
+        "keyPoint": "이번 사건은 가자지구에 대한 인도적 지원 전달의 어려움과 이스라엘 봉쇄의 지속적인 영향을 보여준다."
+      },
+      {
+        "title": "Trump says he is weighing reducing American troop presence in Germany after Iran feud",
+        "description": "President Trump suggested he could soon reduce the U.S. military presence in Germany as he continues to feud with Chancellor Friedrich Merz over the U.S-Israel war against Iran.",
+        "link": "https://www.npr.org/2026/04/30/g-s1-119480/trump-weighing-reducing-american-troops-in-germany-after-iran-feud",
+        "pubDate": "Thu, 30 Apr 2026 01:41:44 -0400",
+        "source": "npr",
+        "summary": "트럼프 대통령은 이란과의 전쟁을 둘러싼 독일 총리와의 갈등으로 인해 독일 주둔 미군 병력 감축을 고려하고 있다고 밝혔다. 이는 미국과 독일 간의 동맹 관계에 변화를 예고한다.",
+        "keyPoint": "이번 결정은 유럽 안보와 미국-독일 동맹 관계에 상당한 영향을 미칠 것으로 예상된다."
       }
     ],
     "ai": [
       {
-        "title": "Anthropic, Claude 4 모델 공식 발표 — 추론 능력 대폭 강화",
-        "summary": "Anthropic이 Claude 4 시리즈를 공식 발표했다. 코딩·수학 벤치마크에서 GPT-4o를 앞섰으며, 100만 토큰 컨텍스트를 지원한다. Claude Code와의 통합도 함께 발표됐다.",
-        "keyPoint": "Claude Code 사용자는 즉시 업그레이드 가능 — 장문 코드베이스 분석 능력이 핵심 개선점",
-        "source": "TechCrunch",
-        "url": "https://techcrunch.com",
-        "pubDate": "2026-04-30T07:00:00Z"
+        "title": "Meta says its business AI now facilitates 10 million conversations a week",
+        "description": "Meta said over 8 billion advertisers have used at least one of its gen AI tools",
+        "link": "https://techcrunch.com/2026/04/30/meta-says-its-business-ai-now-facilitates-10-million-conversations-a-week/",
+        "pubDate": "Thu, 30 Apr 2026 12:08:45 +0000",
+        "source": "techcrunch",
+        "summary": "메타는 자사의 비즈니스 AI가 주당 1천만 건의 대화를 처리하고 있다고 밝혔다. 또한 80억 명 이상의 광고주가 메타의 생성형 AI 도구를 사용한 것으로 나타나, 비즈니스 영역에서 AI 활용이 크게 증가했음을 보여준다.",
+        "keyPoint": "이는 비즈니스 및 광고 분야에서 AI 기술의 활용이 보편화되고 있으며, 앞으로도 그 중요성이 더욱 커질 것임을 시사한다."
       },
       {
-        "title": "OpenAI Codex 웹 인터페이스 출시, 코드 에이전트 일반 공개",
-        "summary": "OpenAI가 Codex의 웹 기반 인터페이스를 일반 사용자에게 공개했다. 자연어 지시만으로 전체 기능을 구현하는 에이전트 모드가 포함됐다.",
-        "keyPoint": "Claude Code·Cursor와의 경쟁이 본격화 — AI 코딩 도구 선택지가 다양해짐",
-        "source": "The Verge",
-        "url": "https://theverge.com",
-        "pubDate": "2026-04-30T03:00:00Z"
+        "title": "SoftBank is creating a robotics company that builds data centers — and already eyeing a $100B IPO",
+        "description": "You need infrastructure to build AI a and robots, but apparently you also need AI and robots to build infrastructure.",
+        "link": "https://techcrunch.com/2026/04/29/softbank-is-creating-a-robotics-company-that-builds-data-centers-and-already-eyeing-a-100b-ipo/",
+        "pubDate": "Thu, 30 Apr 2026 03:58:22 +0000",
+        "source": "techcrunch",
+        "summary": "소프트뱅크는 데이터 센터를 구축하는 로봇 회사를 설립하고 있으며, 이미 1,000억 달러 규모의 IPO를 목표로 하고 있습니다. 이는 AI와 로봇 개발에 필요한 인프라를 AI와 로봇으로 직접 구축하려는 전략입니다.",
+        "keyPoint": "AI 시대에 인프라 구축 방식의 패러다임 변화를 예고하며, 소프트뱅크의 혁신적인 접근 방식이 미래 기술 시장에 큰 영향을 미칠 것으로 보입니다."
       },
       {
-        "title": "Google, Gemini 2.5 Pro 업데이트 — 멀티모달 추론 개선",
-        "summary": "Google이 Gemini 2.5 Pro의 멀티모달 처리 능력을 대폭 개선했다. 이미지·영상 분석과 코드 생성을 동시에 처리하는 능력이 강화됐다.",
-        "keyPoint": "무료 API 할당량 변경 없음 — 기존 Gemini 기반 프로젝트는 즉시 혜택",
-        "source": "VentureBeat",
-        "url": "https://venturebeat.com",
-        "pubDate": "2026-04-30T02:30:00Z"
+        "title": "Amazon’s cloud business is surging — and so is its capital spending",
+        "description": "The e-commerce giant is making more money than expected from AWS but it's also spending a lot, and will continue to do so in the near term, its chief executive said.",
+        "link": "https://techcrunch.com/2026/04/29/amazons-cloud-business-is-surging-and-so-is-its-capital-spending/",
+        "pubDate": "Thu, 30 Apr 2026 00:14:23 +0000",
+        "source": "techcrunch",
+        "summary": "아마존의 클라우드 사업인 AWS가 예상보다 높은 수익을 기록하며 급성장하고 있습니다. 하지만 아마존은 AWS에 막대한 자본을 지출하고 있으며, 이러한 투자는 단기적으로 계속될 것이라고 CEO가 밝혔습니다.",
+        "keyPoint": "AWS의 성장은 긍정적이지만, 지속적인 대규모 투자가 아마존의 재무 상태에 미칠 영향을 주시해야 합니다."
+      },
+      {
+        "title": "Sources: Anthropic could raise a new $50B round at a valuation of $900B",
+        "description": "The maker of Claude has received multiple pre-emptive offers at valuations in the $850 billion to $900 billion range, according to sources familiar with the matter.",
+        "link": "https://techcrunch.com/2026/04/29/sources-anthropic-could-raise-a-new-50b-round-at-a-valuation-of-900b/",
+        "pubDate": "Thu, 30 Apr 2026 00:07:15 +0000",
+        "source": "techcrunch",
+        "summary": "클로드 개발사 앤트로픽이 9,000억 달러의 기업 가치로 500억 달러 규모의 신규 투자 유치를 추진할 수 있다는 소식입니다. 복수의 소식통에 따르면, 앤트로픽은 이미 8,500억~9,000억 달러 범위의 기업 가치로 선제적 투자 제안을 여러 차례 받은 것으로 알려졌습니다.",
+        "keyPoint": "이는 AI 시장의 폭발적인 성장과 앤트로픽의 높은 시장 가치를 보여주는 지표로, 향후 AI 산업의 투자 동향에 큰 영향을 미칠 수 있습니다."
+      },
+      {
+        "title": "On the stand, Elon Musk can’t escape his own tweets",
+        "description": "Elon Musk took the stand for the second day for his attempt to legally dismantle OpenAI.",
+        "link": "https://techcrunch.com/2026/04/29/on-the-stand-elon-musk-cant-escape-his-own-tweets/",
+        "pubDate": "Wed, 29 Apr 2026 23:58:36 +0000",
+        "source": "techcrunch",
+        "summary": "엘론 머스크가 오픈AI를 법적으로 해체하려는 소송에서 이틀째 증언대에 섰습니다. 법정에서 그의 과거 트윗들이 불리하게 작용하고 있는 것으로 알려졌습니다.",
+        "keyPoint": "공개적인 발언, 특히 소셜 미디어 게시물이 법적 분쟁에서 중요한 증거로 활용될 수 있음을 시사합니다."
       }
     ]
   }
