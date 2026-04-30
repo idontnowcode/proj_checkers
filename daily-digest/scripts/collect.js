@@ -133,7 +133,7 @@ async function summarizeArticle(title, description) {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0.3,
-      maxOutputTokens: 512,
+      maxOutputTokens: 1024,
       responseMimeType: 'application/json',
       responseSchema: schema,
     },
