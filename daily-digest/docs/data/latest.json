@@ -1,0 +1,58 @@
+{
+  "date": "2026-04-30",
+  "generatedAt": "2026-04-30T23:00:00Z",
+  "topics": {
+    "international": [
+      {
+        "title": "美-中 무역협상 재개, 양측 90일 관세 유예 논의",
+        "summary": "미국과 중국이 제네바에서 고위급 무역 회담을 재개했다. 양측은 상호 관세 일부 유예를 검토 중이며 90일 휴전안이 거론되고 있다. 협상 결과에 따라 글로벌 공급망에 큰 영향이 예상된다.",
+        "keyPoint": "협상 타결 시 반도체·전기차 관련 국내 수출기업에 긍정적 신호",
+        "source": "Reuters",
+        "url": "https://reuters.com",
+        "pubDate": "2026-04-30T06:00:00Z"
+      },
+      {
+        "title": "우크라이나 휴전 협상, 유럽 중재안 제시",
+        "summary": "프랑스와 독일이 공동 중재안을 제안했다. 동부 4개 주 현상 유지를 전제로 한 90일 휴전이 핵심이며, 러시아 측 반응은 아직 없다.",
+        "keyPoint": "휴전 협상 진전 여부가 에너지 가격과 유럽 경제 회복에 직결",
+        "source": "BBC",
+        "url": "https://bbc.co.uk",
+        "pubDate": "2026-04-30T05:30:00Z"
+      },
+      {
+        "title": "인도-파키스탄 국경 긴장 고조, UN 중재 요청",
+        "summary": "카슈미르 분쟁 지역에서 양국 군사적 충돌이 재발했다. UN 안보리는 긴급 회의를 소집했으며 양측에 자제를 촉구했다.",
+        "keyPoint": "남아시아 지역 불안정은 에너지 수급과 인도 IT 서비스 공급망에 영향 가능",
+        "source": "Al Jazeera",
+        "url": "https://aljazeera.com",
+        "pubDate": "2026-04-30T04:15:00Z"
+      }
+    ],
+    "ai": [
+      {
+        "title": "Anthropic, Claude 4 모델 공식 발표 — 추론 능력 대폭 강화",
+        "summary": "Anthropic이 Claude 4 시리즈를 공식 발표했다. 코딩·수학 벤치마크에서 GPT-4o를 앞섰으며, 100만 토큰 컨텍스트를 지원한다. Claude Code와의 통합도 함께 발표됐다.",
+        "keyPoint": "Claude Code 사용자는 즉시 업그레이드 가능 — 장문 코드베이스 분석 능력이 핵심 개선점",
+        "source": "TechCrunch",
+        "url": "https://techcrunch.com",
+        "pubDate": "2026-04-30T07:00:00Z"
+      },
+      {
+        "title": "OpenAI Codex 웹 인터페이스 출시, 코드 에이전트 일반 공개",
+        "summary": "OpenAI가 Codex의 웹 기반 인터페이스를 일반 사용자에게 공개했다. 자연어 지시만으로 전체 기능을 구현하는 에이전트 모드가 포함됐다.",
+        "keyPoint": "Claude Code·Cursor와의 경쟁이 본격화 — AI 코딩 도구 선택지가 다양해짐",
+        "source": "The Verge",
+        "url": "https://theverge.com",
+        "pubDate": "2026-04-30T03:00:00Z"
+      },
+      {
+        "title": "Google, Gemini 2.5 Pro 업데이트 — 멀티모달 추론 개선",
+        "summary": "Google이 Gemini 2.5 Pro의 멀티모달 처리 능력을 대폭 개선했다. 이미지·영상 분석과 코드 생성을 동시에 처리하는 능력이 강화됐다.",
+        "keyPoint": "무료 API 할당량 변경 없음 — 기존 Gemini 기반 프로젝트는 즉시 혜택",
+        "source": "VentureBeat",
+        "url": "https://venturebeat.com",
+        "pubDate": "2026-04-30T02:30:00Z"
+      }
+    ]
+  }
+}
