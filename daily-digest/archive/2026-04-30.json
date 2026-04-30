@@ -1,0 +1,100 @@
+{
+  "date": "2026-04-30",
+  "generatedAt": "2026-04-30T13:04:14.048Z",
+  "topics": {
+    "international": [
+      {
+        "title": "Oil price hits highest since 2022 after report Trump to be briefed on new Iran options",
+        "description": "Axios reported that US Central Command has prepared a plan for a wave of \"short and powerful\" strikes on Iran.",
+        "link": "https://www.bbc.com/news/articles/cx21m88rd14o?at_medium=RSS&amp;at_campaign=rss",
+        "pubDate": "Thu, 30 Apr 2026 12:59:04 GMT",
+        "source": "bbci",
+        "summary": "Axios reported that US Central Command has prepared a plan for a wave of \"short and powerful\" strikes on Iran.",
+        "keyPoint": ""
+      },
+      {
+        "title": "Trump says US studying troop cuts in Germany, after Merz criticises war",
+        "description": "His remarks come after the German chancellor criticised the US approach to the war in Iran.",
+        "link": "https://www.bbc.com/news/articles/clyplg23l30o?at_medium=RSS&amp;at_campaign=rss",
+        "pubDate": "Thu, 30 Apr 2026 03:25:51 GMT",
+        "source": "bbci",
+        "summary": "His remarks come after the German chancellor criticised the US approach to the war in Iran.",
+        "keyPoint": ""
+      },
+      {
+        "title": "'How are we going to get back home?' Islamist group tightens blockade on Mali capital",
+        "description": "The blockade comes days after Mali's defence minister was assassinated in a series of nationwide attacks.",
+        "link": "https://www.bbc.com/news/articles/cg4pq3zxnpqo?at_medium=RSS&amp;at_campaign=rss",
+        "pubDate": "Thu, 30 Apr 2026 12:24:12 GMT",
+        "source": "bbci",
+        "summary": "The blockade comes days after Mali's defence minister was assassinated in a series of nationwide attacks.",
+        "keyPoint": ""
+      },
+      {
+        "title": "Police say they believe abducted child was murdered as body found in Outback",
+        "description": "The five-year-old girl was last seen on Saturday at an Aboriginal town camp near Alice Springs.",
+        "link": "https://www.bbc.com/news/articles/cvgzd1yp2n6o?at_medium=RSS&amp;at_campaign=rss",
+        "pubDate": "Thu, 30 Apr 2026 06:29:55 GMT",
+        "source": "bbci",
+        "summary": "The five-year-old girl was last seen on Saturday at an Aboriginal town camp near Alice Springs.",
+        "keyPoint": ""
+      },
+      {
+        "title": "US charges Mexican governor and other leaders with aiding drug cartel",
+        "description": "The governor of Sinaloa, Rubén Rocha Moya, hails from the same party as the president of Mexico.",
+        "link": "https://www.bbc.com/news/articles/cpqpzlrd3wwo?at_medium=RSS&amp;at_campaign=rss",
+        "pubDate": "Thu, 30 Apr 2026 03:20:04 GMT",
+        "source": "bbci",
+        "summary": "The governor of Sinaloa, Rubén Rocha Moya, hails from the same party as the president of Mexico.",
+        "keyPoint": ""
+      }
+    ],
+    "ai": [
+      {
+        "title": "Meta says its business AI now facilitates 10 million conversations a week",
+        "description": "Meta said over 8 billion advertisers have used at least one of its gen AI tools",
+        "link": "https://techcrunch.com/2026/04/30/meta-says-its-business-ai-now-facilitates-10-million-conversations-a-week/",
+        "pubDate": "Thu, 30 Apr 2026 12:08:45 +0000",
+        "source": "techcrunch",
+        "summary": "Meta said over 8 billion advertisers have used at least one of its gen AI tools",
+        "keyPoint": ""
+      },
+      {
+        "title": "SoftBank is creating a robotics company that builds data centers — and already eyeing a $100B IPO",
+        "description": "You need infrastructure to build AI a and robots, but apparently you also need AI and robots to build infrastructure.",
+        "link": "https://techcrunch.com/2026/04/29/softbank-is-creating-a-robotics-company-that-builds-data-centers-and-already-eyeing-a-100b-ipo/",
+        "pubDate": "Thu, 30 Apr 2026 03:58:22 +0000",
+        "source": "techcrunch",
+        "summary": "You need infrastructure to build AI a and robots, but apparently you also need AI and robots to build infrastructure.",
+        "keyPoint": ""
+      },
+      {
+        "title": "Amazon&#8217;s cloud business is surging — and so is its capital spending",
+        "description": "The e-commerce giant is making more money than expected from AWS but it's also spending a lot, and will continue to do so in the near term, its chief executive said.",
+        "link": "https://techcrunch.com/2026/04/29/amazons-cloud-business-is-surging-and-so-is-its-capital-spending/",
+        "pubDate": "Thu, 30 Apr 2026 00:14:23 +0000",
+        "source": "techcrunch",
+        "summary": "The e-commerce giant is making more money than expected from AWS but it's also spending a lot, and will continue to do s",
+        "keyPoint": ""
+      },
+      {
+        "title": "Sources: Anthropic could raise a new $50B round at a valuation of $900B",
+        "description": "The maker of Claude has received multiple pre-emptive offers at valuations in the $850 billion to $900 billion range, according to sources familiar with the matter.",
+        "link": "https://techcrunch.com/2026/04/29/sources-anthropic-could-raise-a-new-50b-round-at-a-valuation-of-900b/",
+        "pubDate": "Thu, 30 Apr 2026 00:07:15 +0000",
+        "source": "techcrunch",
+        "summary": "The maker of Claude has received multiple pre-emptive offers at valuations in the $850 billion to $900 billion range, ac",
+        "keyPoint": ""
+      },
+      {
+        "title": "On the stand, Elon Musk can&#8217;t escape his own tweets",
+        "description": "Elon Musk took the stand for the second day for his attempt to legally dismantle OpenAI.",
+        "link": "https://techcrunch.com/2026/04/29/on-the-stand-elon-musk-cant-escape-his-own-tweets/",
+        "pubDate": "Wed, 29 Apr 2026 23:58:36 +0000",
+        "source": "techcrunch",
+        "summary": "Elon Musk took the stand for the second day for his attempt to legally dismantle OpenAI.",
+        "keyPoint": ""
+      }
+    ]
+  }
+}
